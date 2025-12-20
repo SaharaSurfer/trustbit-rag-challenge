@@ -1,4 +1,8 @@
+import re
+
 from pathlib import Path
+
+# -------------------- Path related --------------------- #
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = PACKAGE_ROOT.parent.parent
@@ -16,7 +20,9 @@ if not RAW_DATA_DIR.exists() or not RAW_DATA_DIR.is_dir():
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# ------------------------------------------------------- #
+CHUNK_DIR_PATTERN = re.compile(r"^\d+-\d+$")
+
+# --------------------- Marker-pdf ---------------------- #
 
 CHUNK_PAGES = 100
 PYTORCH_ENV = {
@@ -32,3 +38,5 @@ MARKER_BASE_CONFIG: dict[str, object] = {
     "detection_batch_size": 4,
     "recognition_batch_size": 32,
 }
+
+MARKER_IMAGE_EXTENSION = "jpeg"

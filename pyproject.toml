@@ -19,6 +19,7 @@ dependencies = [
 [project.scripts]
 process_all_pdfs = "trustbit_rag_challenge.scripts.process_all_pdfs:main"
 process_single_pdf = "trustbit_rag_challenge.scripts.process_single_pdf:main"
+merge_pdf_chunks = "trustbit_rag_challenge.scripts.merge_pdf_chunks:main"
 
 
 [build-system]
