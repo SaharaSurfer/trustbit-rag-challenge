@@ -87,7 +87,7 @@ def invoke_worker(pdf_path: Path, page_range: str | None) -> bool:
     cmd = [
         sys.executable,
         "-m",
-        "trustbit_rag_challenge.scripts.process_single",
+        "trustbit_rag_challenge.scripts.process_single_pdf",
         str(pdf_path),
     ]
     if page_range:

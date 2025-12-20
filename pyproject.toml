@@ -17,8 +17,8 @@ dependencies = [
 
 
 [project.scripts]
-process_all = "trustbit_rag_challenge.scripts.process_all:main"
-process_single = "trustbit_rag_challenge.scripts.process_single:main"
+process_all_pdfs = "trustbit_rag_challenge.scripts.process_all_pdfs:main"
+process_single_pdf = "trustbit_rag_challenge.scripts.process_single_pdf:main"
 
 
 [build-system]
