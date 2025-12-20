@@ -1,0 +1,7 @@
+# python
+.python-version
+.venv
+__pycache__/
+
+# directory with pdfs and processed data
+data/

@@ -1,0 +1,26 @@
+[project]
+name = "trustbit-rag-challenge"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "SaharaSurfer",email = "st119029@student.spbu.ru"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "marker-pdf (>=1.10.1,<2.0.0)",
+    "pypdf (>=6.4.2,<7.0.0)",
+    "loguru (>=0.7.3,<0.8.0)",
+    "cryptography (>=46.0.3,<47.0.0)"
+]
+
+
+[project.scripts]
+process_all = "trustbit_rag_challenge.scripts.process_all:main"
+process_single = "trustbit_rag_challenge.scripts.process_single:main"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
