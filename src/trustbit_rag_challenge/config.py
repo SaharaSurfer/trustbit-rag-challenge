@@ -8,7 +8,9 @@ PACKAGE_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = PACKAGE_ROOT.parent.parent
 
 DATA_DIR = PROJECT_ROOT / "data"
+
 QUESTIONS_PATH = DATA_DIR / "questions.json"
+COMPANY_MAPPING_PATH = DATA_DIR / "subset.csv"
 
 RAW_DATA_DIR = DATA_DIR / "pdfs"
 if not RAW_DATA_DIR.exists() or not RAW_DATA_DIR.is_dir():
@@ -45,5 +47,13 @@ MARKDOWN_IMAGE_PATTERN = re.compile(r"!\[.*?\]\(.*?\)")
 
 # ----------------- RAG pipeline config ----------------- #
 
+DEVICE = "cuda"
+
 MAX_TOKENS_PER_CHUNK = 500
 CHUNK_OVERLAP = 50
+
+CHROMA_DB_DIR = DATA_DIR / "chroma_db"
+CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
+
+E5_EMBEDDING_MODEL = "intfloat/multilingual-e5-large"
+EMBEDDING_NORMALIZE = True
