@@ -12,7 +12,9 @@ dependencies = [
     "marker-pdf (>=1.10.1,<2.0.0)",
     "pypdf (>=6.4.2,<7.0.0)",
     "loguru (>=0.7.3,<0.8.0)",
-    "cryptography (>=46.0.3,<47.0.0)"
+    "cryptography (>=46.0.3,<47.0.0)",
+    "langchain-text-splitters (>=1.1.0,<2.0.0)",
+    "tiktoken (>=0.12.0,<0.13.0)"
 ]
 
 
@@ -20,6 +22,7 @@ dependencies = [
 process_all_pdfs = "trustbit_rag_challenge.scripts.process_all_pdfs:main"
 process_single_pdf = "trustbit_rag_challenge.scripts.process_single_pdf:main"
 merge_pdf_chunks = "trustbit_rag_challenge.scripts.merge_pdf_chunks:main"
+prepare_rag_chunks = "trustbit_rag_challenge.scripts.prepare_rag_chunks:main"
 
 
 [build-system]

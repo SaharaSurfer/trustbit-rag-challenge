@@ -22,7 +22,7 @@ PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 CHUNK_DIR_PATTERN = re.compile(r"^\d+-\d+$")
 
-# --------------------- Marker-pdf ---------------------- #
+# ------------- Marker-pdf (OCR & parsing) -------------- #
 
 CHUNK_PAGES = 100
 PYTORCH_ENV = {
@@ -40,3 +40,10 @@ MARKER_BASE_CONFIG: dict[str, object] = {
 }
 
 MARKER_IMAGE_EXTENSION = "jpeg"
+MARKER_PAGE_SEPARATOR_PATTERN = re.compile(r"\n\n\{(\d+)\}-{48}\n\n")
+MARKDOWN_IMAGE_PATTERN = re.compile(r"!\[.*?\]\(.*?\)")
+
+# ----------------- RAG pipeline config ----------------- #
+
+MAX_TOKENS_PER_CHUNK = 500
+CHUNK_OVERLAP = 50
