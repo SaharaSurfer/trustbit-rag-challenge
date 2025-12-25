@@ -21,7 +21,6 @@ dependencies = [
     "jinja2 (>=3.1.6,<4.0.0)",
 ]
 
-
 [project.scripts]
 process_single_pdf = "trustbit_rag_challenge.scripts.process_single_pdf:main"
 process_all_pdfs = "trustbit_rag_challenge.scripts.process_all_pdfs:main"
@@ -31,7 +30,39 @@ index_rag_chunks = "trustbit_rag_challenge.scripts.index_rag_chunks:main"
 generate_submission = "trustbit_rag_challenge.scripts.generate_submission:main"
 submit = "trustbit_rag_challenge.scripts.submit:main"
 
-
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.14.10,<0.15.0)",
+    "mypy (>=1.19.1,<2.0.0)",
+    "pre-commit (>=4.5.1,<5.0.0)",
+    "types-requests (>=2.32.4.20250913,<3.0.0.0)"
+]
+
+[tool.ruff]
+line-length = 80
+target-version = "py311"
+
+[tool.ruff.lint]
+# E: pycodestyle errors
+# F: pyflakes
+# I: isort (сортировка импортов)
+# B: flake8-bugbear (полезные баги)
+# UP: pyupgrade (обновление синтаксиса)
+select = ["E", "F", "I", "B", "UP"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+disallow_untyped_defs = false
