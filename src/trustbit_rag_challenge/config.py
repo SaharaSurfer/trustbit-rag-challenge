@@ -57,3 +57,17 @@ CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
 
 EMBEDDING_MODEL = "BAAI/bge-m3"
 EMBEDDING_NORMALIZE = True
+
+RERANKER_MODEL_NAME = "BAAI/bge-reranker-v2-m3"
+
+OPENAI_MODEL = "gpt-4o-mini"
+
+# -------------------- Challenge API -------------------- #
+
+TEAM_EMAIL = "st119029@student.spbu.ru"
+SURNAME = "Romanov"
+SUBMISSION_NAME = f"{SURNAME}_v0"
+
+SERVER_BASE_URL = "http://5.35.3.130:800"
+SUBMISSION_URL = f"{SERVER_BASE_URL}/submit"
+LEADERBOARD_URL = f"{SERVER_BASE_URL}/round_two/validate"

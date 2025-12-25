@@ -1,7 +1,9 @@
 # python
 .python-version
 .venv
+.env
 __pycache__/
 
-# directory with pdfs and processed data
+# unnecessary data
 data/
+*.log

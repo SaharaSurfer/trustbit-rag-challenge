@@ -17,7 +17,8 @@ dependencies = [
     "tiktoken (>=0.12.0,<0.13.0)",
     "langchain-chroma (>=1.1.0,<2.0.0)",
     "langchain-huggingface (>=1.2.0,<2.0.0)",
-    "sentence-transformers (>=5.2.0,<6.0.0)"
+    "sentence-transformers (>=5.2.0,<6.0.0)",
+    "jinja2 (>=3.1.6,<4.0.0)",
 ]
 
 
@@ -27,6 +28,8 @@ process_all_pdfs = "trustbit_rag_challenge.scripts.process_all_pdfs:main"
 merge_pdf_chunks = "trustbit_rag_challenge.scripts.merge_pdf_chunks:main"
 prepare_rag_chunks = "trustbit_rag_challenge.scripts.prepare_rag_chunks:main"
 index_rag_chunks = "trustbit_rag_challenge.scripts.index_rag_chunks:main"
+generate_submission = "trustbit_rag_challenge.scripts.generate_submission:main"
+submit = "trustbit_rag_challenge.scripts.submit:main"
 
 
 [build-system]
