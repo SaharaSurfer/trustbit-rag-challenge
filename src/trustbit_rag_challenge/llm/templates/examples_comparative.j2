@@ -1,0 +1,9 @@
+Example:
+Question: "Which of the companies had the lowest total assets in USD: 'CompA', 'CompB', 'CompC'?"
+Data: "CompA: $6B; CompB: $1B; CompC: N/A (wrong currency)"
+Answer:
+{
+  "step_by_step_analysis": "1. Gather assets: CompA=$6B, CompB=$1B.\n2. CompC excluded (currency).\n3. Compare: $1B < $6B.\n4. Winner: CompB.",
+  "reasoning_summary": "Comparing valid USD assets shows CompB is lowest.",
+  "final_answer": "CompB"
+}

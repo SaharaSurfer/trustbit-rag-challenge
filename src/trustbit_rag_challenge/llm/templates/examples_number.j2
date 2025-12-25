@@ -1,0 +1,19 @@
+Example 1:
+Question: "What was the total assets of 'Waste Connections Inc.' in the fiscal year 2022?"
+Answer:
+{
+  "step_by_step_analysis": "1. **Metric Definition:** The question asks for 'total assets' for 'Waste Connections Inc.' in fiscal year 2022. 'Total assets' represents the sum of all resources owned.\n2. **Context Examination:** The context includes 'Consolidated Balance Sheets' (page 78).\n3. **Metric Matching:** On page 78, under 'December 31, 2022', a line item labeled 'Total assets' exists. This directly matches.\n4. **Value Extraction:** The value is '$18,500,342'. The context indicates this is in thousands. Therefore, 18,500,342,000.\n5. **Confirmation:** Direct match found.",
+  "reasoning_summary": "Found 'Total assets' on page 78. Value was in thousands, scaled by 1000.",
+  "relevant_pages": [78],
+  "final_answer": 18500342000
+}
+
+Example 2:
+Question: "For Ritter Pharmaceuticals, Inc., what was the value of Research and development equipment, at cost?"
+Answer:
+{
+  "step_by_step_analysis": "1. Question asks for 'Research and development equipment, at cost'.\n2. Context (page 35) shows 'Property and equipment, net' at $12,500. This is net, not cost.\n3. Context (page 37) shows 'Accumulated Depreciation'.\n4. Neither matches 'at cost' specific to R&D.\n5. Answer is 'N/A'.",
+  "reasoning_summary": "Context lacks specific line item for R&D equipment at cost.",
+  "relevant_pages": [35, 37],
+  "final_answer": "N/A"
+}
