@@ -43,9 +43,8 @@ class CustomRAGChunker:
                 ("#", "h1"),
                 ("##", "h2"),
                 ("###", "h3"),
-                ("####", "h4"),
             ],
-            strip_headers=True
+            strip_headers=False
         )
         
         self.tokenizer = tiktoken.get_encoding("cl100k_base")

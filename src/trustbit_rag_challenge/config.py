@@ -49,11 +49,11 @@ MARKDOWN_IMAGE_PATTERN = re.compile(r"!\[.*?\]\(.*?\)")
 
 DEVICE = "cuda"
 
-MAX_TOKENS_PER_CHUNK = 500
-CHUNK_OVERLAP = 50
+MAX_TOKENS_PER_CHUNK = 1000
+CHUNK_OVERLAP = 100
 
 CHROMA_DB_DIR = DATA_DIR / "chroma_db"
 CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
 
-E5_EMBEDDING_MODEL = "intfloat/multilingual-e5-large"
+EMBEDDING_MODEL = "BAAI/bge-m3"
 EMBEDDING_NORMALIZE = True

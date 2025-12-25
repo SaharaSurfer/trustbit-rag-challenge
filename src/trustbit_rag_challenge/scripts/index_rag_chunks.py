@@ -10,7 +10,7 @@ from trustbit_rag_challenge.config import (
     PROCESSED_DATA_DIR, 
     CHROMA_DB_DIR,
     DEVICE,
-    E5_EMBEDDING_MODEL,
+    EMBEDDING_MODEL,
     EMBEDDING_NORMALIZE
 )
 
@@ -70,10 +70,10 @@ def main() -> None:
     Logs progress and errors to PROCESSED_DATA_DIR/indexing.log.
     """
     logger.add(PROCESSED_DATA_DIR / "indexing.log", rotation="10 MB")
-    logger.info(f"Using device: {DEVICE} for model {E5_EMBEDDING_MODEL}")
+    logger.info(f"Using device: {DEVICE} for model {EMBEDDING_MODEL}")
 
     embeddings = HuggingFaceEmbeddings(
-        model_name=E5_EMBEDDING_MODEL,
+        model_name=EMBEDDING_MODEL,
         model_kwargs={'device': DEVICE},
         encode_kwargs={'normalize_embeddings': EMBEDDING_NORMALIZE}
     )
