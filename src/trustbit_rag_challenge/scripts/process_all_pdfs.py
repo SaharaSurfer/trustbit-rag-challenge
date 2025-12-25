@@ -2,13 +2,16 @@ import os
 import subprocess
 import sys
 import time
-
 from pathlib import Path
+
 from loguru import logger
 from pypdf import PdfReader
 
 from trustbit_rag_challenge.config import (
-    RAW_DATA_DIR, PROCESSED_DATA_DIR, CHUNK_PAGES, PYTORCH_ENV
+    CHUNK_PAGES,
+    PROCESSED_DATA_DIR,
+    PYTORCH_ENV,
+    RAW_DATA_DIR,
 )
 
 
@@ -56,12 +59,7 @@ def chunk_already_processed(pdf_path: Path, page_range: str) -> bool:
         True if the output file for this chunk already exists,
         False otherwise.
     """
-    output_path = (
-        PROCESSED_DATA_DIR
-        / pdf_path.stem
-        / page_range
-        / "content.md"
-    )
+    output_path = PROCESSED_DATA_DIR / pdf_path.stem / page_range / "content.md"
     return output_path.exists()
 
 
@@ -83,7 +81,7 @@ def invoke_worker(pdf_path: Path, page_range: str | None) -> bool:
     """
     env = os.environ.copy()
     env.update(PYTORCH_ENV)
-    
+
     cmd = [
         sys.executable,
         "-m",
@@ -113,7 +111,7 @@ def chunk_ranges(num_pages: int, chunk_size: int) -> list[str]:
     for start in range(0, num_pages, chunk_size):
         end = min(num_pages - 1, start + chunk_size - 1)
         ranges.append(f"{start}-{end}")
-    
+
     return ranges
 
 
@@ -131,7 +129,7 @@ def main() -> None:
     for pdf_path in pdf_files:
         try:
             page_count = get_page_count(pdf_path)
-            
+
         except Exception as e:
             logger.error("Failed to read {}: {}", pdf_path.name, e)
             continue
@@ -143,26 +141,24 @@ def main() -> None:
                 logger.debug(
                     "Skipping already processed chunk {} for {}",
                     page_range,
-                    pdf_path.name
+                    pdf_path.name,
                 )
                 continue
 
             logger.info(
-                "Spawning worker for {} | CHUNK: {}",
-                pdf_path.name,
-                page_range
+                "Spawning worker for {} | CHUNK: {}", pdf_path.name, page_range
             )
-            
+
             status_ok = invoke_worker(pdf_path, page_range)
             if not status_ok:
                 logger.error(
                     "Chunk {} FAILED for {}, continuing to next chunk",
                     page_range,
-                    pdf_path
+                    pdf_path,
                 )
             else:
                 logger.success(
                     "Chunk {} SUCCEEDED for {}, continuing to next chunk",
                     page_range,
-                    pdf_path
+                    pdf_path,
                 )

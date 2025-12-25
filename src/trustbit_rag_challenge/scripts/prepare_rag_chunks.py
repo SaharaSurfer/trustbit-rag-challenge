@@ -1,20 +1,21 @@
-import re
 import json
-import tiktoken
-
+import re
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any
+
+import tiktoken
 from langchain_text_splitters import (
-    MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
+    MarkdownHeaderTextSplitter,
+    RecursiveCharacterTextSplitter,
 )
 from loguru import logger
 
 from trustbit_rag_challenge.config import (
-    PROCESSED_DATA_DIR,
-    MARKER_PAGE_SEPARATOR_PATTERN,
+    CHUNK_OVERLAP,
     MARKDOWN_IMAGE_PATTERN,
+    MARKER_PAGE_SEPARATOR_PATTERN,
     MAX_TOKENS_PER_CHUNK,
-    CHUNK_OVERLAP
+    PROCESSED_DATA_DIR,
 )
 
 
@@ -29,6 +30,7 @@ class CustomRAGChunker:
     4. Cleans chunk text (removes images, normalizes whitespace).
     5. Emits chunk records with metadata.
     """
+
     def __init__(self):
         """
         Initialize the chunker.
@@ -44,17 +46,17 @@ class CustomRAGChunker:
                 ("##", "h2"),
                 ("###", "h3"),
             ],
-            strip_headers=False
+            strip_headers=False,
         )
-        
+
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=MAX_TOKENS_PER_CHUNK,
             chunk_overlap=CHUNK_OVERLAP,
-            length_function = self.num_tokens,
-            separators=["\n\n", "\n", ". ", " ", ""]
-        )   
-    
+            length_function=self.num_tokens,
+            separators=["\n\n", "\n", ". ", " ", ""],
+        )
+
     def num_tokens(self, text: str) -> int:
         """
         Compute the number of tokens in a text string.
@@ -70,7 +72,7 @@ class CustomRAGChunker:
             Number of tokens according to the tokenizer.
         """
         return len(self.tokenizer.encode(text))
-    
+
     def clean_text(self, text: str) -> str:
         """
         Clean Markdown text.
@@ -91,10 +93,10 @@ class CustomRAGChunker:
             Cleaned text suitable for embedding.
         """
         text = MARKDOWN_IMAGE_PATTERN.sub("", text)
-        text = re.sub(r'\n{3,}', '\n\n', text)
+        text = re.sub(r"\n{3,}", "\n\n", text)
         return text.strip()
 
-    def split_by_pages(self, full_text: str) -> List[Dict[str, Any]]:
+    def split_by_pages(self, full_text: str) -> list[dict[str, Any]]:
         """
         Split a full document into pages using explicit page separators.
 
@@ -113,24 +115,21 @@ class CustomRAGChunker:
             - "page_number": int
             - "text": str
         """
-        parts =  MARKER_PAGE_SEPARATOR_PATTERN.split(full_text)
-        
+        parts = MARKER_PAGE_SEPARATOR_PATTERN.split(full_text)
+
         pages = []
         for i in range(1, len(parts), 2):
             page_idx = int(parts[i])
-            page_content = parts[i+1]
+            page_content = parts[i + 1]
 
             if not page_content.strip():
                 continue
 
-            pages.append({
-                "page_number": page_idx,
-                "text": page_content
-            })
-            
+            pages.append({"page_number": page_idx, "text": page_content})
+
         return pages
 
-    def process_document(self, content_path: Path, doc_sha1: str) -> List[Dict]:
+    def process_document(self, content_path: Path, doc_sha1: str) -> list[dict]:
         """
         Process a single Markdown document into RAG-ready chunks.
 
@@ -154,14 +153,14 @@ class CustomRAGChunker:
         """
         full_text = content_path.read_text(encoding="utf-8")
         raw_pages = self.split_by_pages(full_text)
-        
-        final_chunks = []
+
+        final_chunks: list[dict[str, Any]] = []
         for page in raw_pages:
             page_num = page["page_number"]
             page_text = page["text"]
-            
+
             header_splits = self.header_splitter.split_text(page_text)
-            sub_chunks = self.text_splitter.split_documents(header_splits) 
+            sub_chunks = self.text_splitter.split_documents(header_splits)
             for chunk in sub_chunks:
                 text = self.clean_text(chunk.page_content)
                 if not text:
@@ -173,10 +172,10 @@ class CustomRAGChunker:
                     "length_tokens": self.num_tokens(chunk.page_content),
                     "source": doc_sha1,
                     "page_index": page_num,
-                    **chunk.metadata
+                    **chunk.metadata,
                 }
                 final_chunks.append(record)
-                    
+
         return final_chunks
 
 
@@ -192,19 +191,21 @@ def main():
     Logs progress and failures without interrupting the full run.
     """
     logger.add(PROCESSED_DATA_DIR / "chunking.log", rotation="10 MB")
-    
+
     chunker = CustomRAGChunker()
-    
+
     doc_dirs = sorted([d for d in PROCESSED_DATA_DIR.iterdir() if d.is_dir()])
     logger.info(f"Found {len(doc_dirs)} documents to chunk.")
-    
+
     for doc_dir in doc_dirs:
         full_md_path = doc_dir / "full" / "content.md"
-        
+
         if not full_md_path.exists():
-            logger.warning(f"Skipping {doc_dir.name}: 'full/content.md' not found.")
+            logger.warning(
+                f"Skipping {doc_dir.name}: 'full/content.md' not found."
+            )
             continue
-            
+
         logger.info(f"Chunking {doc_dir.name}...")
 
         try:
@@ -217,5 +218,5 @@ def main():
         except Exception as e:
             logger.error(f"Failed to chunk {doc_dir.name}: {e}")
             continue
-    
+
     logger.success("Done!")

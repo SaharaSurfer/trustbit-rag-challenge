@@ -1,16 +1,16 @@
-import sys
 import argparse
 import gc
-import torch
-
+import sys
 from pathlib import Path
+
+import torch
 from loguru import logger
-from marker.converters.pdf import PdfConverter
 from marker.config.parser import ConfigParser
+from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import save_output
 
-from trustbit_rag_challenge.config import PROCESSED_DATA_DIR, MARKER_BASE_CONFIG
+from trustbit_rag_challenge.config import MARKER_BASE_CONFIG, PROCESSED_DATA_DIR
 
 
 def parse_args() -> argparse.Namespace:
@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
         "--page-range",
         type=str,
         default=None,
-        help='Comma separated pages/ranges, e.g. "0,5-10,20" (optional)'
+        help='Comma separated pages/ranges, e.g. "0,5-10,20" (optional)',
     )
     return parser.parse_args()
 
@@ -82,14 +82,14 @@ def main() -> int:
         )
         rendered = converter(str(pdf_path))
         save_output(rendered, str(doc_output_dir), "content")
-        
+
     except Exception as e:
         logger.error(f"CRITICAL ERROR processing {pdf_path.name}: {e}")
         return 1
 
     else:
         return 0
-    
+
     finally:
         del converter
         del rendered

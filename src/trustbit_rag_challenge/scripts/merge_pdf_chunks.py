@@ -1,11 +1,14 @@
 import json
 import shutil
-
 from pathlib import Path
+from typing import Any
+
 from loguru import logger
 
 from trustbit_rag_challenge.config import (
-    PROCESSED_DATA_DIR, CHUNK_DIR_PATTERN, MARKER_IMAGE_EXTENSION
+    CHUNK_DIR_PATTERN,
+    MARKER_IMAGE_EXTENSION,
+    PROCESSED_DATA_DIR,
 )
 
 
@@ -26,7 +29,7 @@ def chunk_sort_key(page_range: Path) -> int:
     int
         Starting page number of the chunk.
     """
-    return int(page_range.name.split('-')[0])
+    return int(page_range.name.split("-")[0])
 
 
 def merge_chunks(pdf_dir: Path) -> None:
@@ -51,15 +54,19 @@ def merge_chunks(pdf_dir: Path) -> None:
     pdf_dir : Path
         Path to the processed PDF directory containing chunk subdirectories.
     """
-    chunk_dirs = sorted([
-        d for d in pdf_dir.iterdir()
-        if d.is_dir() and CHUNK_DIR_PATTERN.fullmatch(d.name)
-    ], key=chunk_sort_key)
+    chunk_dirs = sorted(
+        [
+            d
+            for d in pdf_dir.iterdir()
+            if d.is_dir() and CHUNK_DIR_PATTERN.fullmatch(d.name)
+        ],
+        key=chunk_sort_key,
+    )
 
     if not chunk_dirs:
         logger.warning(f"No chunk directories found for {pdf_dir} — skipping")
         return
-    
+
     result_dir = pdf_dir / "full"
     if result_dir.exists():
         shutil.rmtree(result_dir)
@@ -68,20 +75,19 @@ def merge_chunks(pdf_dir: Path) -> None:
     logger.info(f"Gluing {len(chunk_dirs)} chunks for {pdf_dir}...")
 
     full_markdown = []
-    full_metadata = {
+    full_metadata: dict[str, list[Any]] = {
         "table_of_contents": [],
-        "page_stats": []
+        "page_stats": [],
     }
+
     for chunk_dir in chunk_dirs:
         # Markdown
         md_file = chunk_dir / "content.md"
         if not md_file.exists():
             logger.error(f"Missing content.md in {chunk_dir}")
             return
-        
-        full_markdown.append(
-            md_file.read_text(encoding="utf-8")
-        )
+
+        full_markdown.append(md_file.read_text(encoding="utf-8"))
 
         # JSON metadata
         meta_file = chunk_dir / "content_meta.json"
@@ -89,15 +95,11 @@ def merge_chunks(pdf_dir: Path) -> None:
             logger.error(f"Missing content_meta.json in {chunk_dir}")
             return
 
-        with open(meta_file, "r", encoding="utf-8") as f:
+        with open(meta_file, encoding="utf-8") as f:
             metadata = json.load(f)
 
-        full_metadata["table_of_contents"].extend(
-            metadata["table_of_contents"]
-        )
-        full_metadata["page_stats"].extend(
-            metadata["page_stats"]
-        )
+        full_metadata["table_of_contents"].extend(metadata["table_of_contents"])
+        full_metadata["page_stats"].extend(metadata["page_stats"])
 
         # Images
         for img_file in chunk_dir.glob(f"*.{MARKER_IMAGE_EXTENSION}"):
@@ -122,5 +124,7 @@ def main() -> None:
     """
     logger.add(PROCESSED_DATA_DIR / "assembly.log", rotation="10 MB")
 
-    for doc_dir in sorted([d for d in PROCESSED_DATA_DIR.iterdir() if d.is_dir()]):
+    for doc_dir in sorted(
+        [d for d in PROCESSED_DATA_DIR.iterdir() if d.is_dir()]
+    ):
         merge_chunks(doc_dir)

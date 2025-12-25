@@ -1,28 +1,31 @@
-import requests
-import pandas as pd
-
 from io import StringIO
 from pathlib import Path
-from rich.console import Console
-from rich.table import Table
+from typing import Literal
+
+import pandas as pd
+import requests
 from rich import box
+from rich.console import Console
 from rich.prompt import Confirm
+from rich.table import Table
 from rich.theme import Theme
 
 from trustbit_rag_challenge.config import (
     DATA_DIR,
+    LEADERBOARD_URL,
+    SUBMISSION_URL,
     SURNAME,
-    SUBMISSION_URL, 
-    LEADERBOARD_URL
 )
 
-custom_theme = Theme({
-    "error": "bold red",
-    "success": "bold green",
-    "highlight": "bold white",
-    "primary": "blue",
-    "prompt.choices": "blue"
-})
+custom_theme = Theme(
+    {
+        "error": "bold red",
+        "success": "bold green",
+        "highlight": "bold white",
+        "primary": "blue",
+        "prompt.choices": "blue",
+    }
+)
 console = Console(theme=custom_theme)
 
 
@@ -81,7 +84,7 @@ def upload_submission(file_path: Path) -> bool:
         If ``file_path`` does not exist or cannot be opened.
     """
     filename = file_path.name
-    
+
     with console.status(
         f"[primary]Uploading[/] [highlight]{filename}[/]...", spinner="arc"
     ):
@@ -91,18 +94,17 @@ def upload_submission(file_path: Path) -> bool:
                 response = requests.post(
                     SUBMISSION_URL, files=files, timeout=30
                 )
-                
+
             if response.status_code == 200:
-                console.print(f"[success]Submission accepted![/]")
+                console.print("[success]Submission accepted![/]")
                 return True
             else:
                 console.print(
-                    f"[error]Submission failed "
-                    f"[Code {response.status_code}][/]"
+                    f"[error]Submission failed [Code {response.status_code}][/]"
                 )
                 console.print(f"[dim]{response.text}[/]")
                 return False
-                
+
         except requests.RequestException as e:
             console.print(f"[error]Network error:[/]\n{e}")
             return False
@@ -149,14 +151,14 @@ def fetch_and_display_leaderboard() -> None:
                     f"[Code {response.status_code}][/]"
                 )
                 return
-            
+
             csv_data = response.text.strip()
             if not csv_data:
                 console.print("[dim]Leaderboard is currently empty.[/]")
                 return
 
             df = pd.read_csv(StringIO(csv_data))
-            
+
         except Exception as e:
             console.print(f"[error]Error processing leaderboard data:[/]\n{e}")
             return
@@ -168,7 +170,7 @@ def fetch_and_display_leaderboard() -> None:
     df = df.sort_values(
         by="rank",
         key=lambda col: pd.to_numeric(col, errors="coerce"),
-        ascending=True
+        ascending=True,
     ).reset_index(drop=True)
 
     table = Table(
@@ -180,22 +182,24 @@ def fetch_and_display_leaderboard() -> None:
     )
 
     for col in df.columns:
-        justify = "right" if pd.api.types.is_numeric_dtype(df[col]) else "left"
+        justify: Literal["right", "left"] = (
+            "right" if pd.api.types.is_numeric_dtype(df[col]) else "left"
+        )
         table.add_column(str(col).upper(), justify=justify)
 
     for _, row in df.head(15).iterrows():
         row_style = ""
-        
-        is_my_submission = False        
+
+        is_my_submission = False
         for val in row.values:
             val_str = str(val)
             if SURNAME in val_str:
                 is_my_submission = True
                 break
-        
+
         if is_my_submission:
             row_style = "highlight"
-            
+
         cells = [str(item) if not pd.isna(item) else "-" for item in row]
         table.add_row(*cells, style=row_style)
 
@@ -238,12 +242,12 @@ def main() -> None:
         return
 
     console.print(f"Found latest submission: [highlight]{latest_file.name}[/]")
-    
+
     if Confirm.ask("Do you want to submit this file?", console=console):
         success = upload_submission(latest_file)
         if success:
             console.print("\n")
         else:
-            console.print(f"[error]Something went wrong during submission")
-    
+            console.print("[error]Something went wrong during submission")
+
     fetch_and_display_leaderboard()

@@ -1,5 +1,4 @@
 import re
-
 from pathlib import Path
 
 # -------------------- Path related --------------------- #
@@ -27,14 +26,11 @@ CHUNK_DIR_PATTERN = re.compile(r"^\d+-\d+$")
 # ------------- Marker-pdf (OCR & parsing) -------------- #
 
 CHUNK_PAGES = 100
-PYTORCH_ENV = {
-    "PYTORCH_ALLOC_CONF": "expandable_segments:True"
-}
+PYTORCH_ENV = {"PYTORCH_ALLOC_CONF": "expandable_segments:True"}
 
 MARKER_BASE_CONFIG: dict[str, object] = {
     "output_format": "markdown",
     "paginate_output": True,
-
     # GPU / performance
     "disable_multiprocessing": True,
     "detection_batch_size": 4,
