@@ -38,7 +38,8 @@ class LLMClient:
         self.client = OpenAI(api_key=api_key)
         self.model_name = OPENAI_MODEL
 
-    def _get_schema_model(self, kind: str) -> type[BaseModel]:
+    @staticmethod
+    def _get_schema_model(kind: str) -> type[BaseModel]:
         mapping: dict[str, type[BaseModel]] = {
             "number": NumberResponse,
             "boolean": BooleanResponse,
@@ -48,7 +49,52 @@ class LLMClient:
         }
         return mapping.get(kind, NameResponse)
 
+    @staticmethod
+    def _filter_references(
+        chunks: list[dict], mentioned_pages: list[int]
+    ) -> list[dict]:
+        if not mentioned_pages:
+            return []
+
+        filtered = []
+        mentioned_set = set(mentioned_pages)
+        for c in chunks:
+            p_idx = int(c.get("page_index", -1))
+            if p_idx in mentioned_set:
+                filtered.append({"pdf_sha1": c["source"], "page_index": p_idx})
+
+        return filtered
+
+    @staticmethod
+    def _get_fallback_response(kind: str, error_msg: str) -> dict:
+        val: str | bool | list[str] = "N/A"
+        if kind == "boolean":
+            val = False
+        elif kind == "names":
+            val = []
+
+        return {
+            "value": val,
+            "references": [],
+            "step_by_step_analysis": "",
+            "reasoning_summary": f"Error: {error_msg}",
+        }
+
     @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
+    def _call_llm(
+        self, system_instr: str, user_msg: str, response_model: type[BaseModel]
+    ) -> Any:
+        response = self.client.responses.parse(
+            model=self.model_name,
+            input=[
+                {"role": "system", "content": system_instr},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.0,
+            text_format=response_model,
+        )
+        return response.output_parsed
+
     def generate_answer(
         self, question: str, chunks: list[dict], kind: str
     ) -> dict[str, Any]:
@@ -64,26 +110,15 @@ class LLMClient:
         response_model = self._get_schema_model(kind)
 
         try:
-            response = self.client.responses.parse(
-                model=self.model_name,
-                input=[
-                    {"role": "system", "content": system_instr},
-                    {"role": "user", "content": user_msg},
-                ],
-                temperature=0.0,
-                text_format=response_model,
-            )
+            content = self._call_llm(system_instr, user_msg, response_model)
 
-            content = response.output_parsed
             value = content.final_answer
             references = self._filter_references(chunks, content.relevant_pages)
 
             if str(value).upper() == "N/A":
                 references = []
-
             if kind == "boolean" and value is False:
                 references = []
-
             if kind == "names" and isinstance(value, list) and not value:
                 references = []
 
@@ -98,7 +133,6 @@ class LLMClient:
             logger.error(f"API Error (generate_answer): {e}")
             return self._get_fallback_response(kind, str(e))
 
-    @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
     def generate_comparison(
         self, question: str, aggregated_context: str
     ) -> dict[str, Any]:
@@ -107,17 +141,7 @@ class LLMClient:
         response_model = ComparativeResponse
 
         try:
-            response = self.client.responses.parse(
-                model=self.model_name,
-                input=[
-                    {"role": "system", "content": system_instr},
-                    {"role": "user", "content": user_msg},
-                ],
-                temperature=0.0,
-                text_format=response_model,
-            )
-
-            content = response.output_parsed
+            content = self._call_llm(system_instr, user_msg, response_model)
 
             return {
                 "value": content.final_answer,
@@ -128,32 +152,17 @@ class LLMClient:
 
         except Exception as e:
             logger.error(f"API Error (generate_comparison): {e}")
-            return {
-                "value": "N/A",
-                "references": [],
-                "step_by_step_analysis": "",
-                "reasoning_summary": f"Error: {str(e)}",
-            }
+            return self._get_fallback_response("comparative", str(e))
 
-    @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
     def rephrase_question(
         self, question: str, companies: list[str]
     ) -> dict[str, str]:
         system_instr = get_rephrasing_system_prompt()
         user_msg = format_rephrasing_prompt(question, companies)
+        response_model = RephrasedQuestions
 
         try:
-            response = self.client.responses.parse(
-                model=self.model_name,
-                input=[
-                    {"role": "system", "content": system_instr},
-                    {"role": "user", "content": user_msg},
-                ],
-                temperature=0.0,
-                text_format=RephrasedQuestions,
-            )
-
-            content = response.output_parsed
+            content = self._call_llm(system_instr, user_msg, response_model)
 
             result_dict = {}
             for item in content.questions:
@@ -166,32 +175,3 @@ class LLMClient:
             logger.error(f"Rephrasing Error: {e}")
             logger.warning("Falling back to original question.")
             return {company: question for company in companies}
-
-    def _filter_references(
-        self, chunks: list[dict], mentioned_pages: list[int]
-    ) -> list[dict]:
-        if not mentioned_pages:
-            return []
-
-        filtered = []
-        mentioned_set = set(mentioned_pages)
-        for c in chunks:
-            p_idx = int(c.get("page_index", -1))
-            if p_idx in mentioned_set:
-                filtered.append({"pdf_sha1": c["source"], "page_index": p_idx})
-
-        return filtered
-
-    def _get_fallback_response(self, kind: str, error_msg: str) -> dict:
-        val: str | bool | list[str] = "N/A"
-        if kind == "boolean":
-            val = False
-        elif kind == "names":
-            val = []
-
-        return {
-            "value": val,
-            "references": [],
-            "step_by_step_analysis": "",
-            "reasoning_summary": f"Error: {error_msg}",
-        }
