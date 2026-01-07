@@ -7,14 +7,14 @@ from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from trustbit_rag_challenge.config import OPENAI_MODEL
-
-from .prompts import (
+from trustbit_rag_challenge.enums import QuestionKind
+from trustbit_rag_challenge.llm.prompts import (
     format_rephrasing_prompt,
     format_user_prompt,
     get_base_system_prompt,
     get_rephrasing_system_prompt,
 )
-from .schemas import (
+from trustbit_rag_challenge.llm.schemas import (
     BaseModel,
     BooleanResponse,
     ComparativeResponse,
@@ -39,13 +39,13 @@ class LLMClient:
         self.model_name = OPENAI_MODEL
 
     @staticmethod
-    def _get_schema_model(kind: str) -> type[BaseModel]:
-        mapping: dict[str, type[BaseModel]] = {
-            "number": NumberResponse,
-            "boolean": BooleanResponse,
-            "name": NameResponse,
-            "names": NamesResponse,
-            "comparative": ComparativeResponse,
+    def _get_schema_model(kind: QuestionKind) -> type[BaseModel]:
+        mapping: dict[QuestionKind, type[BaseModel]] = {
+            QuestionKind.NUMBER: NumberResponse,
+            QuestionKind.BOOLEAN: BooleanResponse,
+            QuestionKind.NAME: NameResponse,
+            QuestionKind.NAMES: NamesResponse,
+            QuestionKind.COMPARATIVE: ComparativeResponse,
         }
         return mapping.get(kind, NameResponse)
 
@@ -66,11 +66,11 @@ class LLMClient:
         return filtered
 
     @staticmethod
-    def _get_fallback_response(kind: str, error_msg: str) -> dict:
+    def _get_fallback_response(kind: QuestionKind, error_msg: str) -> dict:
         val: str | bool | list[str] = "N/A"
-        if kind == "boolean":
+        if kind == QuestionKind.BOOLEAN:
             val = False
-        elif kind == "names":
+        elif kind == QuestionKind.NAMES:
             val = []
 
         return {
@@ -96,7 +96,7 @@ class LLMClient:
         return response.output_parsed
 
     def generate_answer(
-        self, question: str, chunks: list[dict], kind: str
+        self, question: str, chunks: list[dict], kind: QuestionKind
     ) -> dict[str, Any]:
         context_str = "\n\n".join(
             [
@@ -117,9 +117,13 @@ class LLMClient:
 
             if str(value).upper() == "N/A":
                 references = []
-            if kind == "boolean" and value is False:
+            if kind == QuestionKind.BOOLEAN and value is False:
                 references = []
-            if kind == "names" and isinstance(value, list) and not value:
+            if (
+                kind == QuestionKind.NAMES
+                and isinstance(value, list)
+                and not value
+            ):
                 references = []
 
             return {
@@ -136,7 +140,7 @@ class LLMClient:
     def generate_comparison(
         self, question: str, aggregated_context: str
     ) -> dict[str, Any]:
-        system_instr = get_base_system_prompt("comparative")
+        system_instr = get_base_system_prompt(QuestionKind.COMPARATIVE)
         user_msg = format_user_prompt(question, aggregated_context)
         response_model = ComparativeResponse
 
@@ -152,7 +156,7 @@ class LLMClient:
 
         except Exception as e:
             logger.error(f"API Error (generate_comparison): {e}")
-            return self._get_fallback_response("comparative", str(e))
+            return self._get_fallback_response(QuestionKind.COMPARATIVE, str(e))
 
     def rephrase_question(
         self, question: str, companies: list[str]

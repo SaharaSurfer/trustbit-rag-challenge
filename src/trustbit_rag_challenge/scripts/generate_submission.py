@@ -9,6 +9,7 @@ from trustbit_rag_challenge.config import (
     SUBMISSION_NAME,
     TEAM_EMAIL,
 )
+from trustbit_rag_challenge.enums import QuestionKind
 from trustbit_rag_challenge.llm.client import LLMClient
 from trustbit_rag_challenge.llm.schemas import (
     Answer,
@@ -22,7 +23,7 @@ from trustbit_rag_challenge.router import RAGRouter
 
 def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:
     text = q_data["text"]
-    kind = q_data["kind"]
+    kind = QuestionKind(q_data["kind"])
 
     try:
         result = orchestrator.answer_question(text, kind)
@@ -45,9 +46,9 @@ def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:
     except Exception as e:
         logger.error(f"Error processing question '{text[:50]}...': {e}")
         val: str | bool | list[str] = "N/A"
-        if kind == "boolean":
+        if kind == QuestionKind.BOOLEAN:
             val = False
-        if kind == "names":
+        if kind == QuestionKind.NAMES:
             val = []
 
         return Answer(question_text=text, kind=kind, value=val, references=[])

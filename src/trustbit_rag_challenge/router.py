@@ -3,6 +3,7 @@ from typing import Any
 
 from loguru import logger
 
+from trustbit_rag_challenge.enums import QuestionKind
 from trustbit_rag_challenge.llm.client import LLMClient
 from trustbit_rag_challenge.retriever import ChromaRetriever
 
@@ -35,7 +36,7 @@ class RAGRouter:
         )
 
     def answer_question(
-        self, question_text: str, question_kind: str
+        self, question_text: str, question_kind: QuestionKind
     ) -> dict[str, Any]:
         companies = self.extract_companies(question_text)
 
@@ -57,7 +58,7 @@ class RAGRouter:
             return self._handle_comparative(companies, question_text)
 
     def _handle_single(
-        self, company: str, query: str, kind: str
+        self, company: str, query: str, kind: QuestionKind
     ) -> dict[str, Any]:
         top_k = 5
         fetch_k = 30
@@ -93,7 +94,9 @@ class RAGRouter:
                     sub_query, company_name=company
                 )
 
-                ans = self.llm.generate_answer(sub_query, chunks, kind="number")
+                ans = self.llm.generate_answer(
+                    sub_query, chunks, kind=QuestionKind.NUMBER
+                )
                 self._log_llm_result(f"SUB:{company}", sub_query, ans)
 
                 val = ans.get("value", "N/A")
@@ -121,11 +124,13 @@ class RAGRouter:
             "references": all_references,
         }
 
-    def _format_na_response(self, reasoning: str, kind: str) -> dict[str, Any]:
+    def _format_na_response(
+        self, reasoning: str, kind: QuestionKind
+    ) -> dict[str, Any]:
         value: str | bool | list[str] = "N/A"
-        if kind == "boolean":
+        if kind == QuestionKind.BOOLEAN:
             value = False
-        elif kind == "names":
+        elif kind == QuestionKind.NAMES:
             value = []
 
         return {

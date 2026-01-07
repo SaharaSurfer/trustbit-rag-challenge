@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from trustbit_rag_challenge.enums import QuestionKind
+
 # ----------------------------------- Mixins -----------------------------------
 
 
@@ -132,9 +134,7 @@ class SourceReference(BaseModel):
 
 class Answer(BaseModel):
     question_text: str | None = Field(None, description="Text of the question")
-    kind: Literal["number", "name", "boolean", "names"] | None = Field(
-        None, description="Kind of the question"
-    )
+    kind: QuestionKind | None = Field(None, description="Kind of the question")
     value: float | str | bool | list[str] | Literal["N/A"] = Field(
         ..., description="Answer to the question"
     )

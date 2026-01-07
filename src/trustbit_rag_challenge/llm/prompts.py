@@ -2,6 +2,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
+from trustbit_rag_challenge.enums import QuestionKind
+
 CURRENT_DIR = Path(__file__).parent
 TEMPLATES_DIR = CURRENT_DIR / "templates"
 
@@ -25,7 +27,7 @@ def _render_optional_template(template_name: str) -> str:
         return ""
 
 
-def get_base_system_prompt(kind: str) -> str:
+def get_base_system_prompt(kind: QuestionKind) -> str:
     instruction = _render_optional_template(f"instruction_{kind}.j2")
     examples = _render_optional_template(f"examples_{kind}.j2")
 
