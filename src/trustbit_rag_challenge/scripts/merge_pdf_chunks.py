@@ -10,6 +10,7 @@ from trustbit_rag_challenge.config import (
     MARKER_IMAGE_EXTENSION,
     PROCESSED_DATA_DIR,
 )
+from trustbit_rag_challenge.logging_utils import setup_logging
 
 
 def chunk_sort_key(page_range: Path) -> int:
@@ -122,7 +123,7 @@ def main() -> None:
     Iterates over directories in PROCESSED_DATA_DIR and merges
     chunked outputs where applicable.
     """
-    logger.add(PROCESSED_DATA_DIR / "assembly.log", rotation="10 MB")
+    setup_logging()
 
     for doc_dir in sorted(
         [d for d in PROCESSED_DATA_DIR.iterdir() if d.is_dir()]

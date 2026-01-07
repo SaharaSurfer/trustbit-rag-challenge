@@ -13,6 +13,7 @@ from trustbit_rag_challenge.config import (
     PYTORCH_ENV,
     RAW_DATA_DIR,
 )
+from trustbit_rag_challenge.logging_utils import setup_logging
 
 
 def get_page_count(pdf_path: Path) -> int:
@@ -121,7 +122,7 @@ def main() -> None:
 
     Iterates over PDFs and processes them chunk-by-chunk.
     """
-    logger.add(PROCESSED_DATA_DIR / "processing.log", rotation="10 MB")
+    setup_logging()
 
     pdf_files = sorted(list(RAW_DATA_DIR.glob("*.pdf")))
     logger.info(f"Found {len(pdf_files)} PDFs to process.")

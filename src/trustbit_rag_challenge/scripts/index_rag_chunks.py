@@ -13,6 +13,7 @@ from trustbit_rag_challenge.config import (
     EMBEDDING_NORMALIZE,
     PROCESSED_DATA_DIR,
 )
+from trustbit_rag_challenge.logging_utils import setup_logging
 
 
 def load_chunks_from_json(json_path: Path) -> list[Document]:
@@ -69,10 +70,9 @@ def main() -> None:
     - Iterate over processed document directories (PROCESSED_DATA_DIR)
     - For each `dataset.json`, load the chunks and add them to the collection
     - Persist vectors to disk
-
-    Logs progress and errors to PROCESSED_DATA_DIR/indexing.log.
     """
-    logger.add(PROCESSED_DATA_DIR / "indexing.log", rotation="10 MB")
+    setup_logging()
+
     logger.info(f"Using device: {DEVICE} for model {EMBEDDING_MODEL}")
 
     embeddings = HuggingFaceEmbeddings(

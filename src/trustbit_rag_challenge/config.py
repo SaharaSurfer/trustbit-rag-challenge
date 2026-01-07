@@ -23,6 +23,9 @@ PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 CHUNK_DIR_PATTERN = re.compile(r"^\d+-\d+$")
 
+LOGS_DIR = PROJECT_ROOT / "logs"
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
 # ------------- Marker-pdf (OCR & parsing) -------------- #
 
 CHUNK_PAGES = 100

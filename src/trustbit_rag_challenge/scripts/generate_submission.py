@@ -15,6 +15,7 @@ from trustbit_rag_challenge.llm.schemas import (
     AnswerSubmission,
     SourceReference,
 )
+from trustbit_rag_challenge.logging_utils import setup_logging
 from trustbit_rag_challenge.retriever import ChromaRetriever
 from trustbit_rag_challenge.router import RAGRouter
 
@@ -53,7 +54,8 @@ def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:
 
 
 def main():
-    logger.add("submission.log", rotation="5 MB")
+    setup_logging()
+
     logger.info("Initializing RAG System components...")
 
     try:
