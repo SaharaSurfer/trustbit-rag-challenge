@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -104,9 +104,6 @@ class ComparativeResponse(ChainOfThoughtMixin):
     )
 
 
-# -------------------------------- Helper Models -------------------------------
-
-
 class RephrasedQuestion(BaseModel):
     company_name: str = Field(
         description="Company name, exactly as provided in the original question"
@@ -120,6 +117,21 @@ class RephrasedQuestions(BaseModel):
     questions: list[RephrasedQuestion] = Field(
         description="List of rephrased questions for each company"
     )
+
+
+# ------------------------------------ DTOs ------------------------------------
+
+
+class ClientResponse(BaseModel):
+    value: str | Literal["N/A"] | float | int | bool | list[str]
+    relevant_pages: list[int] = Field(default_factory=list)
+    step_by_step_analysis: str = ""
+    reasoning_summary: str = ""
+
+
+class RouterResponse(BaseModel):
+    value: str | Literal["N/A"] | float | int | bool | list[str]
+    references: list[dict[str, Any]] = Field(default_factory=list)
 
 
 # ------------------------------ Submission Models -----------------------------

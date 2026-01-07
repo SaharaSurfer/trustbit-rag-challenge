@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any
 
@@ -17,10 +18,12 @@ from trustbit_rag_challenge.llm.prompts import (
 from trustbit_rag_challenge.llm.schemas import (
     BaseModel,
     BooleanResponse,
+    ClientResponse,
     ComparativeResponse,
     NameResponse,
     NamesResponse,
     NumberResponse,
+    RephrasedQuestion,
     RephrasedQuestions,
 )
 
@@ -50,35 +53,26 @@ class LLMClient:
         return mapping.get(kind, NameResponse)
 
     @staticmethod
-    def _filter_references(
-        chunks: list[dict], mentioned_pages: list[int]
-    ) -> list[dict]:
-        if not mentioned_pages:
-            return []
+    def _get_fallback_response(
+        kind: QuestionKind, error_msg: str
+    ) -> ClientResponse:
+        value: str | bool | list[str] = "N/A"
+        if kind == QuestionKind.BOOLEAN:
+            value = False
+        elif kind == QuestionKind.NAMES:
+            value = []
 
-        filtered = []
-        mentioned_set = set(mentioned_pages)
-        for c in chunks:
-            p_idx = int(c.get("page_index", -1))
-            if p_idx in mentioned_set:
-                filtered.append({"pdf_sha1": c["source"], "page_index": p_idx})
-
-        return filtered
+        return ClientResponse(
+            value=value,
+            relevant_pages=[],
+            step_by_step_analysis="",
+            reasoning_summary=error_msg,
+        )
 
     @staticmethod
-    def _get_fallback_response(kind: QuestionKind, error_msg: str) -> dict:
-        val: str | bool | list[str] = "N/A"
-        if kind == QuestionKind.BOOLEAN:
-            val = False
-        elif kind == QuestionKind.NAMES:
-            val = []
-
-        return {
-            "value": val,
-            "references": [],
-            "step_by_step_analysis": "",
-            "reasoning_summary": f"Error: {error_msg}",
-        }
+    def _log_llm_response(question: str, kind: QuestionKind, result: BaseModel):
+        log_payload = {"q": question, "kind": kind, **result.model_dump()}
+        logger.info(f"🤖 LLM: {json.dumps(log_payload, ensure_ascii=False)}")
 
     @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
     def _call_llm(
@@ -95,87 +89,57 @@ class LLMClient:
         )
         return response.output_parsed
 
-    def generate_answer(
-        self, question: str, chunks: list[dict], kind: QuestionKind
-    ) -> dict[str, Any]:
-        context_str = "\n\n".join(
-            [
-                f"--- Page {c.get('page_index', '?')} ---\n{c['text']}"
-                for c in chunks
-            ]
-        )
-
+    def answer_question(
+        self, question: str, aggregated_context: str, kind: QuestionKind
+    ) -> ClientResponse:
         system_instr = get_base_system_prompt(kind)
-        user_msg = format_user_prompt(question, context_str)
+        user_msg = format_user_prompt(question, aggregated_context)
         response_model = self._get_schema_model(kind)
 
         try:
-            content = self._call_llm(system_instr, user_msg, response_model)
-
-            value = content.final_answer
-            references = self._filter_references(chunks, content.relevant_pages)
-
-            if str(value).upper() == "N/A":
-                references = []
-            if kind == QuestionKind.BOOLEAN and value is False:
-                references = []
-            if (
-                kind == QuestionKind.NAMES
-                and isinstance(value, list)
-                and not value
-            ):
-                references = []
-
-            return {
-                "value": value,
-                "references": references,
-                "step_by_step_analysis": content.step_by_step_analysis,
-                "reasoning_summary": content.reasoning_summary,
-            }
+            llm_response = self._call_llm(
+                system_instr, user_msg, response_model
+            )
+            LLMClient._log_llm_response(question, kind, llm_response)
 
         except Exception as e:
-            logger.error(f"API Error (generate_answer): {e}")
+            logger.error(f"API Error (answering question): {e}")
             return self._get_fallback_response(kind, str(e))
 
-    def generate_comparison(
-        self, question: str, aggregated_context: str
-    ) -> dict[str, Any]:
-        system_instr = get_base_system_prompt(QuestionKind.COMPARATIVE)
-        user_msg = format_user_prompt(question, aggregated_context)
-        response_model = ComparativeResponse
+        # Comparative question schema doesn't have `relevant_pages`
+        relevant_pages = getattr(llm_response, "relevant_pages", [])
 
-        try:
-            content = self._call_llm(system_instr, user_msg, response_model)
+        return ClientResponse(
+            value=llm_response.final_answer,
+            relevant_pages=relevant_pages,
+            step_by_step_analysis=llm_response.step_by_step_analysis,
+            reasoning_summary=llm_response.reasoning_summary,
+        )
 
-            return {
-                "value": content.final_answer,
-                "references": [],
-                "step_by_step_analysis": content.step_by_step_analysis,
-                "reasoning_summary": content.reasoning_summary,
-            }
-
-        except Exception as e:
-            logger.error(f"API Error (generate_comparison): {e}")
-            return self._get_fallback_response(QuestionKind.COMPARATIVE, str(e))
-
-    def rephrase_question(
+    def rephrase_comparative_question(
         self, question: str, companies: list[str]
-    ) -> dict[str, str]:
+    ) -> RephrasedQuestions:
         system_instr = get_rephrasing_system_prompt()
         user_msg = format_rephrasing_prompt(question, companies)
         response_model = RephrasedQuestions
 
         try:
-            content = self._call_llm(system_instr, user_msg, response_model)
+            llm_response = self._call_llm(
+                system_instr, user_msg, response_model
+            )
+            LLMClient._log_llm_response(
+                question, QuestionKind.COMPARATIVE, llm_response
+            )
 
-            result_dict = {}
-            for item in content.questions:
-                clean_name = item.company_name.strip()
-                result_dict[clean_name] = item.question
-
-            return result_dict
+            return llm_response
 
         except Exception as e:
-            logger.error(f"Rephrasing Error: {e}")
+            logger.error(f"API Error (rephrasing): {e}")
             logger.warning("Falling back to original question.")
-            return {company: question for company in companies}
+
+            return RephrasedQuestions(
+                questions=[
+                    RephrasedQuestion(company_name=c, question=question)
+                    for c in companies
+                ]
+            )

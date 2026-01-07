@@ -29,7 +29,7 @@ def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:
         result = orchestrator.answer_question(text, kind)
 
         refs = []
-        for r in result.get("references", []):
+        for r in result.references:
             refs.append(
                 SourceReference(
                     pdf_sha1=r["pdf_sha1"], page_index=r["page_index"]
@@ -39,7 +39,7 @@ def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:
         return Answer(
             question_text=text,
             kind=kind,
-            value=result["value"],
+            value=result.value,
             references=refs,
         )
 
