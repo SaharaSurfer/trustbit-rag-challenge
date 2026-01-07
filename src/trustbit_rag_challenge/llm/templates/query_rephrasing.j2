@@ -1,2 +1,2 @@
 Original comparative question: '{{ question }}'
-Companies mentioned: {{ companies_str }}
+Companies mentioned: {{ companies | map('tojson') | join(', ') }}

@@ -1,15 +1,13 @@
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
 CURRENT_DIR = Path(__file__).parent
 TEMPLATES_DIR = CURRENT_DIR / "templates"
 
 env = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),
-    autoescape=select_autoescape(
-        enabled_extensions=("html", "xml"), default_for_string=False
-    ),
+    autoescape=False,
     trim_blocks=True,
     lstrip_blocks=True,
 )
@@ -20,14 +18,16 @@ def render_template(template_name: str, **kwargs) -> str:
     return template.render(**kwargs)
 
 
-def get_base_system_prompt(kind: str) -> str:
-    instruction = ""
-    if kind == "comparative":
-        instruction = render_template("instruction_comparative.j2")
+def _render_optional_template(template_name: str) -> str:
+    try:
+        return render_template(template_name)
+    except TemplateNotFound:
+        return ""
 
-    examples = ""
-    if kind in ["number", "boolean", "name", "names", "comparative"]:
-        examples = render_template(f"examples_{kind}.j2")
+
+def get_base_system_prompt(kind: str) -> str:
+    instruction = _render_optional_template(f"instruction_{kind}.j2")
+    examples = _render_optional_template(f"examples_{kind}.j2")
 
     return render_template(
         "system_base.j2", specific_instruction=instruction, examples=examples
@@ -47,9 +47,8 @@ def get_rephrasing_system_prompt() -> str:
 
 
 def format_rephrasing_prompt(question: str, companies: list[str]) -> str:
-    quote = '"'
-    companies_str = ", ".join([f'"{c.strip(quote)}"' for c in companies])
+    clean_companies = [c.strip('"').strip("'") for c in companies]
 
     return render_template(
-        "query_rephrasing.j2", question=question, companies_str=companies_str
+        "query_rephrasing.j2", question=question, companies=clean_companies
     )
