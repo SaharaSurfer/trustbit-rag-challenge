@@ -44,8 +44,8 @@ class RAGRouter:
             logger.warning(
                 f"No known companies found in question: '{question_text}'"
             )
-            return self._format_na_response(
-                "Company not identified in question", question_kind
+            return LLMClient._get_fallback_response(
+                question_kind, "Company not identified in question"
             )
 
         if len(companies) == 1:
@@ -70,8 +70,8 @@ class RAGRouter:
 
         if not chunks:
             logger.warning(f"No chunks found for {company}")
-            return self._format_na_response(
-                f"No information found for {company}", kind
+            return LLMClient._get_fallback_response(
+                kind, f"No information found for {company}"
             )
 
         answer = self.llm.generate_answer(query, chunks, kind)
@@ -122,20 +122,4 @@ class RAGRouter:
         return {
             "value": final_answer["value"],
             "references": all_references,
-        }
-
-    def _format_na_response(
-        self, reasoning: str, kind: QuestionKind
-    ) -> dict[str, Any]:
-        value: str | bool | list[str] = "N/A"
-        if kind == QuestionKind.BOOLEAN:
-            value = False
-        elif kind == QuestionKind.NAMES:
-            value = []
-
-        return {
-            "value": value,
-            "references": [],
-            "step_by_step_analysis": "",
-            "reasoning_summary": reasoning,
         }
