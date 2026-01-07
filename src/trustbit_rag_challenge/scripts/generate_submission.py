@@ -1,8 +1,6 @@
 import json
-from typing import Literal
 
 from loguru import logger
-from pydantic import BaseModel, Field
 from tqdm import tqdm
 
 from trustbit_rag_challenge.config import (
@@ -12,38 +10,13 @@ from trustbit_rag_challenge.config import (
     TEAM_EMAIL,
 )
 from trustbit_rag_challenge.llm.client import LLMClient
+from trustbit_rag_challenge.llm.schemas import (
+    Answer,
+    AnswerSubmission,
+    SourceReference,
+)
 from trustbit_rag_challenge.retriever import ChromaRetriever
 from trustbit_rag_challenge.router import RAGRouter
-
-
-class SourceReference(BaseModel):
-    pdf_sha1: str = Field(..., description="SHA1 hash of the PDF file")
-    page_index: int = Field(
-        ..., description="Zero-based physical page number in the PDF file"
-    )
-
-
-class Answer(BaseModel):
-    question_text: str | None = Field(None, description="Text of the question")
-    kind: Literal["number", "name", "boolean", "names"] | None = Field(
-        None, description="Kind of the question"
-    )
-    value: float | str | bool | list[str] | Literal["N/A"] = Field(
-        ..., description="Answer to the question"
-    )
-    references: list[SourceReference] = Field(
-        [], description="References to the source material"
-    )
-
-
-class AnswerSubmission(BaseModel):
-    team_email: str = Field(
-        ..., description="Email that your team used to register"
-    )
-    submission_name: str = Field(
-        ..., description="Unique name of the submission"
-    )
-    answers: list[Answer] = Field(..., description="List of answers")
 
 
 def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:

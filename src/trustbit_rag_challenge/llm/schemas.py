@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# ----------------------------------- Mixins -----------------------------------
+
 
 class ChainOfThoughtMixin(BaseModel):
     step_by_step_analysis: str = Field(
@@ -23,6 +25,9 @@ class ChainOfThoughtMixin(BaseModel):
             "Around 50 words."
         ),
     )
+
+
+class ReferencesMixin(BaseModel):
     relevant_pages: list[int] = Field(
         ...,
         description=(
@@ -37,7 +42,10 @@ class ChainOfThoughtMixin(BaseModel):
     )
 
 
-class NumberResponse(ChainOfThoughtMixin):
+# ----------------------------- LLM Response Models ----------------------------
+
+
+class NumberResponse(ChainOfThoughtMixin, ReferencesMixin):
     final_answer: float | int | Literal["N/A"] = Field(
         ...,
         description=(
@@ -51,7 +59,7 @@ class NumberResponse(ChainOfThoughtMixin):
     )
 
 
-class BooleanResponse(ChainOfThoughtMixin):
+class BooleanResponse(ChainOfThoughtMixin, ReferencesMixin):
     final_answer: bool = Field(
         ...,
         description=(
@@ -62,7 +70,7 @@ class BooleanResponse(ChainOfThoughtMixin):
     )
 
 
-class NameResponse(ChainOfThoughtMixin):
+class NameResponse(ChainOfThoughtMixin, ReferencesMixin):
     final_answer: str | Literal["N/A"] = Field(
         ...,
         description=(
@@ -73,7 +81,7 @@ class NameResponse(ChainOfThoughtMixin):
     )
 
 
-class NamesResponse(ChainOfThoughtMixin):
+class NamesResponse(ChainOfThoughtMixin, ReferencesMixin):
     final_answer: list[str] | Literal["N/A"] = Field(
         ...,
         description=(
@@ -85,17 +93,16 @@ class NamesResponse(ChainOfThoughtMixin):
     )
 
 
-class ComparativeResponse(BaseModel):
-    step_by_step_analysis: str = Field(
-        ..., description="Detailed analysis of the comparison."
-    )
-    reasoning_summary: str = Field(..., description="Concise summary.")
+class ComparativeResponse(ChainOfThoughtMixin):
     final_answer: str | Literal["N/A"] = Field(
         ...,
         description=(
             "The winning company name exactly as in the question, or 'N/A'."
         ),
     )
+
+
+# -------------------------------- Helper Models -------------------------------
 
 
 class RephrasedQuestion(BaseModel):
@@ -111,3 +118,36 @@ class RephrasedQuestions(BaseModel):
     questions: list[RephrasedQuestion] = Field(
         description="List of rephrased questions for each company"
     )
+
+
+# ------------------------------ Submission Models -----------------------------
+
+
+class SourceReference(BaseModel):
+    pdf_sha1: str = Field(..., description="SHA1 hash of the PDF file")
+    page_index: int = Field(
+        ..., description="Zero-based physical page number in the PDF file"
+    )
+
+
+class Answer(BaseModel):
+    question_text: str | None = Field(None, description="Text of the question")
+    kind: Literal["number", "name", "boolean", "names"] | None = Field(
+        None, description="Kind of the question"
+    )
+    value: float | str | bool | list[str] | Literal["N/A"] = Field(
+        ..., description="Answer to the question"
+    )
+    references: list[SourceReference] = Field(
+        [], description="References to the source material"
+    )
+
+
+class AnswerSubmission(BaseModel):
+    team_email: str = Field(
+        ..., description="Email that your team used to register"
+    )
+    submission_name: str = Field(
+        ..., description="Unique name of the submission"
+    )
+    answers: list[Answer] = Field(..., description="List of answers")
