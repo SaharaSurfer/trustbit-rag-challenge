@@ -26,7 +26,7 @@ class CustomRAGChunker:
 
     The chunker performs the following steps:
     1. Splits a document into pages using explicit page markers.
-    2. Splits each page by Markdown headers (h1–h4).
+    2. Splits each page by Markdown headers.
     3. Further splits header sections into token-limited chunks with overlap.
     4. Cleans chunk text (removes images, normalizes whitespace).
     5. Emits chunk records with metadata.

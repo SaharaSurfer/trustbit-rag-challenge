@@ -64,8 +64,8 @@ def upload_submission(file_path: Path) -> bool:
     Upload a submission file to the remote submission endpoint.
 
     The file specified by ``file_path`` is uploaded via a POST request to
-    ``SUBMISSION_URL`` using multipart form data. A status spinner and
-    user-facing messages are displayed during the upload process.
+    ``SUBMISSION_URL``. A status spinner and user-facing messages are
+    displayed during the upload process.
 
     Parameters
     ----------

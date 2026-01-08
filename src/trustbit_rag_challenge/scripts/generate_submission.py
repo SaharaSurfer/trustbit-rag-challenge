@@ -22,6 +22,30 @@ from trustbit_rag_challenge.schemas import (
 
 
 def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:
+    """
+    Process a single question dictionary and generate a formatted Answer object.
+
+    This function handles:
+    1. Parsing the question type into a `QuestionKind` enum.
+    2. Invoking the RAG orchestration logic.
+    3. Mapping reference dictionaries to `SourceReference` Pydantic models.
+    4. Providing a fail-safe fallback mechanism in case of runtime errors.
+
+    Parameters
+    ----------
+    q_data : dict
+        A dictionary containing the raw question data (keys: 'text', 'kind').
+    orchestrator : RAGRouter
+        The initialized RAG orchestration logic handler.
+
+    Returns
+    -------
+    Answer
+        A validated Pydantic object ready for inclusion in the submission file.
+        If an error occurs, returns a valid 'N/A' or empty Answer object to
+        prevent the pipeline from crashing.
+    """
+
     text = q_data["text"]
     kind = QuestionKind(q_data["kind"])
 
@@ -55,6 +79,23 @@ def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:
 
 
 def main():
+    """
+    Execute the full RAG pipeline to generate the final submission file.
+
+    Workflow:
+    1.  **Setup**: Configures logging and initializes heavy components.
+    2.  **Load**: Reads the input questions file specified in the config.
+    3.  **Process**: Iterates sequentially through all questions, generating
+        answers via the `RAGRouter`. Sequential processing is used to ensure
+        stability and avoid rate limits.
+    4.  **Save**: Serializes the results into a JSON file strictly following
+        the challenge's submission schema.
+
+    Side Effects
+    ------------
+    - Writes a JSON submission file to `data/submission_<name>.json`.
+    """
+
     setup_logging()
 
     logger.info("Initializing RAG System components...")

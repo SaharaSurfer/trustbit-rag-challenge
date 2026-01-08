@@ -18,7 +18,7 @@ from trustbit_rag_challenge.config import (
 
 class ChromaRetriever:
     """
-    A retrieval system based on ChromaDB and HuggingFace Embeddings (e5-large).
+    A retrieval system based on ChromaDB.
 
     This class handles connecting to the vector store, loading the
     company-to-SHA1 mapping, and performing similarity searches with
@@ -34,6 +34,8 @@ class ChromaRetriever:
         The embedding model instance used for query encoding.
     vector_store : Chroma
         The ChromaDB vector store instance.
+    reranker: CrossEncoder
+        The reranker model instance used for chunks reranking.
     company_map : Dict[str, str]
         A dictionary mapping company names to their PDF SHA1 hashes.
     """
@@ -131,13 +133,11 @@ class ChromaRetriever:
         return self.company_map.get(company_name, None)
 
     def retrieve(
-        self, query: str, company_name: str, top_k: int = 5, fetch_k: int = 50
+        self, query: str, company_name: str, top_k: int = 5, fetch_k: int = 30
     ) -> list[dict[str, Any]]:
         """
         Perform a semantic search for the query, filtered by the
         company's document.
-
-        Uses the E5 task instruction format for the query encoding.
 
         Parameters
         ----------
@@ -147,6 +147,8 @@ class ChromaRetriever:
             The name of the company to restrict the search to.
         top_k : int, optional
             The number of chunks to retrieve, by default 5.
+        fetch_k : int, optional
+            The number of chunks to fetch, by default 30.
 
         Returns
         -------
