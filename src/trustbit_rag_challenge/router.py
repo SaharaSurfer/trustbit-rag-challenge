@@ -2,8 +2,8 @@ from loguru import logger
 
 from trustbit_rag_challenge.enums import QuestionKind
 from trustbit_rag_challenge.llm.client import LLMClient
-from trustbit_rag_challenge.llm.schemas import ClientResponse, RouterResponse
 from trustbit_rag_challenge.retriever import ChromaRetriever
+from trustbit_rag_challenge.schemas import ClientResponse, RouterResponse
 
 
 class RAGRouter:

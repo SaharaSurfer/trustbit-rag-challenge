@@ -11,14 +11,14 @@ from trustbit_rag_challenge.config import (
 )
 from trustbit_rag_challenge.enums import QuestionKind
 from trustbit_rag_challenge.llm.client import LLMClient
-from trustbit_rag_challenge.llm.schemas import (
+from trustbit_rag_challenge.logging_utils import setup_logging
+from trustbit_rag_challenge.retriever import ChromaRetriever
+from trustbit_rag_challenge.router import RAGRouter
+from trustbit_rag_challenge.schemas import (
     Answer,
     AnswerSubmission,
     SourceReference,
 )
-from trustbit_rag_challenge.logging_utils import setup_logging
-from trustbit_rag_challenge.retriever import ChromaRetriever
-from trustbit_rag_challenge.router import RAGRouter
 
 
 def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:

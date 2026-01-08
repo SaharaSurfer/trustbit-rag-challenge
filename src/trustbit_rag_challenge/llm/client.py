@@ -15,7 +15,7 @@ from trustbit_rag_challenge.llm.prompts import (
     get_base_system_prompt,
     get_rephrasing_system_prompt,
 )
-from trustbit_rag_challenge.llm.schemas import (
+from trustbit_rag_challenge.schemas import (
     BaseModel,
     BooleanResponse,
     ClientResponse,
