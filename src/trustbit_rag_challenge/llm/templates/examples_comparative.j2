@@ -1,9 +1,26 @@
 Example:
 Question: "Which of the companies had the lowest total assets in USD: 'CompA', 'CompB', 'CompC'?"
-Data: "CompA: $6B; CompB: $1B; CompC: N/A (wrong currency)"
+Data:
+"""
+Company: CompA
+Extracted Data: 6000000000
+Context: The Consolidated Balance Sheet reports total assets of $6 billion for the fiscal year ended 2022.
+
+---
+
+Company: CompB
+Extracted Data: 1000000000
+Context: Total assets are stated as $1 billion in the financial highlights section.
+
+---
+
+Company: CompC
+Extracted Data: N/A
+Context: The company reports assets in EUR (500 million EUR), but the question specifically requests USD.
+"""
 Answer:
 {
-  "step_by_step_analysis": "1. Gather assets: CompA=$6B, CompB=$1B.\n2. CompC excluded (currency).\n3. Compare: $1B < $6B.\n4. Winner: CompB.",
-  "reasoning_summary": "Comparing valid USD assets shows CompB is lowest.",
+  "step_by_step_analysis": "1. Gather assets: CompA=$6000000000, CompB=$1000000000.\n2. CompC excluded due to currency mismatch: EUR provided, USD requested.\n3. Compare: 1,000,000,000 (CompB) < 6,000,000,000 (CompA).\n4. Winner: CompB.",
+  "reasoning_summary": "Comparing valid USD assets shows CompB ($1B) is lower than CompA ($6B).",
   "final_answer": "CompB"
 }
