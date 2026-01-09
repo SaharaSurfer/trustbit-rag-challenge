@@ -51,12 +51,39 @@ class NumberResponse(ChainOfThoughtMixin, ReferencesMixin):
     final_answer: float | int | Literal["N/A"] = Field(
         ...,
         description=(
-            "An exact metric number is expected.\n"
-            "- For percentages (58.3%) -> 58.3\n"
-            "- For negative values ((2,124)) -> -2124\n"
-            "- For values in thousands (4,970.5 in thousands) -> 4970500\n"
-            "- If currency differs from question -> 'N/A'\n"
-            "- If not directly stated or requires calculation -> 'N/A'"
+            "The exact numeric value based on the text is required. "
+            "Mandatory formatting rules:\n\n"
+            "- Example for commas:\n"
+            "Value from context: 197,621,000\n"
+            "Final answer: 197621000\n\n"
+            "- Example for percentages:\n"
+            "Value from context: 58,3%\n"
+            "Final answer: 58.3\n\n"
+            "- Example for negative values:\n"
+            "Value from context: (2,124,837) CHF\n"
+            "Final answer: -2124837\n\n"
+            "- Example for numbers in thousands:\n"
+            "Value from context: 4970,5 (in thousands €)\n"
+            "Final answer: 4970500\n\n"
+            "- Example for numbers in millions:\n"
+            "Value from context: 20.7 (in millions $)\n"
+            "Final answer: 20700000\n\n"
+            "- Example for numbers in billions:\n"
+            "Value from context: 6.2 (in billions $)\n"
+            "Final answer: 6200000000\n\n"
+            "- Example for currency mismatch:\n"
+            "Value from context: 780000 USD, but question mentions EUR\n"
+            "Final answer: 'N/A'\n\n"
+            "- Example for approximation:\n"
+            "Value from context: 'over 500'\n"
+            "Final answer: 'N/A'\n\n"
+            "- Example for combined scope:\n"
+            "Value from context: '500 patents and applications'\n"
+            "Question asks for: 'patents'\n"
+            "Final answer: 'N/A'\n\n"
+            "- Return 'N/A' if metric is not directly stated EVEN IF it could "
+            "be calculated from other metrics in the context\n\n"
+            "- Return 'N/A' if EXACT metric is not available in the context"
         ),
     )
 
@@ -65,9 +92,12 @@ class BooleanResponse(ChainOfThoughtMixin, ReferencesMixin):
     final_answer: bool = Field(
         ...,
         description=(
-            "True or False. If the question asks 'Did X happen?' and the "
-            "text says X happened -> True. If the text says X did NOT "
-            "happen -> False. If the text mentions nothing about X -> False."
+            "True or False based on EXPLICIT statements. "
+            "- Return True ONLY if the text explicitly states the event/change "
+            "occurred.\n"
+            "- Return False if the answer requires inferring a consequence.\n"
+            "- Return False if the text is silent or ambiguous.\n"
+            "- Return False if the text says X did NOT happen."
         ),
     )
 
@@ -77,8 +107,8 @@ class NameResponse(ChainOfThoughtMixin, ReferencesMixin):
         ...,
         description=(
             "The specific name of the entity/person/product found. "
-            "Extract exactly as it appears in context. "
-            "Return 'N/A' if not available."
+            "Extract exactly as it appears in context without any generic "
+            "description. Return 'N/A' if entity is not explicitly named."
         ),
     )
 

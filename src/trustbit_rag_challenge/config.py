@@ -65,7 +65,7 @@ OPENAI_MODEL = "gpt-4o-mini"
 
 TEAM_EMAIL = "st119029@student.spbu.ru"
 SURNAME = "Romanov"
-SUBMISSION_NAME = f"{SURNAME}_v0"
+SUBMISSION_NAME = f"{SURNAME}_v1"
 
 SERVER_BASE_URL = "http://5.35.3.130:800"
 SUBMISSION_URL = f"{SERVER_BASE_URL}/submit"

@@ -1,9 +1,29 @@
-Example:
+Example 1:
 Question: "Did W. P. Carey Inc. announce any changes to its dividend policy in the annual report?"
 Answer:
 {
   "step_by_step_analysis": "1. Question asks about changes to dividend *policy*.\n2. Context (page 12) states dividend increased to $4.27.\n3. Context mentions maintaining 'steady and growing' dividend.\n4. While amount changed, the *policy* of steady growth remained consistent.",
   "reasoning_summary": "Dividend amount increased, but policy remained consistent.",
   "relevant_pages": [12, 18],
+  "final_answer": false
+}
+
+Example 2:
+Question: "Did TechLogistics Corp announce any changes to its dividend policy in the annual report?"
+Answer:
+{
+  "step_by_step_analysis": "1. Question asks for a change in dividend *policy*.\n2. Context states: 'The Board declared a quarterly dividend of $0.15 per share, representing a 10% increase over the prior quarter.'\n3. An increase in the *amount* declared is a standard operational decision, not necessarily a change in the guiding *policy* or framework.\n4. There is no explicit statement saying 'We have changed our dividend policy'.\n5. Therefore, a change in amount is not a change in policy.",
+  "reasoning_summary": "The Board increased the dividend amount by 10%, but the text does not state that the underlying dividend policy was modified.",
+  "relevant_pages": [45],
+  "final_answer": false
+}
+
+Example 3:
+Question: "Did 'RealEstate Co' report any changes to its capital structure?"
+Answer:
+{
+  "step_by_step_analysis": "1. Question asks for reported changes to 'capital structure'.\n2. Context mentions a 'Merger with Trust Inc.' on Page 5.\n3. A merger involves shares and cash, which technically changes capital.\n4. HOWEVER, the text DOES NOT explicitly state 'our capital structure changed' or 'changes to capitalization'.\n5. Inferring a structural change from a merger event is forbidden.",
+  "reasoning_summary": "The text mentions a merger but does not explicitly report a change to the capital structure. Inference is not allowed.",
+  "relevant_pages": [5],
   "final_answer": false
 }

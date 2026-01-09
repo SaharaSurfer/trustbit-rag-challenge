@@ -261,15 +261,11 @@ class RAGRouter:
                 company, sub_query, QuestionKind.NUMBER
             )
 
-            summary_line = (
-                f"Company: {company}\n"
-                f"Extracted Data: {ans.value}\n"
-                f"Context: {ans.reasoning_summary}\n"
-            )
+            summary_line = f"Company: {company}\nExtracted Data: {ans.value}\n"
             individual_results.append(summary_line)
             all_references.extend(references)
 
-        aggregated_context = "\n---\n".join(individual_results)
+        aggregated_context = "\n".join(individual_results)
         final_answer = self.llm.answer_question(
             query, aggregated_context, kind=QuestionKind.COMPARATIVE
         )

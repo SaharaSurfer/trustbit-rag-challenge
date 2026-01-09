@@ -1,26 +1,30 @@
 Example:
-Question: "Which of the companies had the lowest total assets in USD: 'CompA', 'CompB', 'CompC'?"
-Data:
+Context:
 """
-Company: CompA
-Extracted Data: 6000000000
-Context: The Consolidated Balance Sheet reports total assets of $6 billion for the fiscal year ended 2022.
+Company: CrossFirst Bank
+Extracted Data: 6601086000
+
+Company: Holley Inc.
+Extracted Data: 1249642000
+
+Company: PowerFleet, Inc.
+Extracted Data: 217435000
+
+Company: Petra Diamonds
+Extracted Data: 1078600000
+
+Company: Sleep Country Canada Holdings Inc.
+Extracted Data: 'N/A'
+"""
 
 ---
 
-Company: CompB
-Extracted Data: 1000000000
-Context: Total assets are stated as $1 billion in the financial highlights section.
+Question: "Which of the companies had the lowest total assets in USD at the end of the period listed in the annual report: "CrossFirst Bank", "Sleep Country Canada Holdings Inc.", "Holley Inc.", "PowerFleet, Inc.", "Petra Diamonds"? If data for the company is not available, exclude it from the comparison."
 
----
-
-Company: CompC
-Extracted Data: N/A
-Context: The company reports assets in EUR (500 million EUR), but the question specifically requests USD.
-"""
 Answer:
 {
-  "step_by_step_analysis": "1. Gather assets: CompA=$6000000000, CompB=$1000000000.\n2. CompC excluded due to currency mismatch: EUR provided, USD requested.\n3. Compare: 1,000,000,000 (CompB) < 6,000,000,000 (CompA).\n4. Winner: CompB.",
-  "reasoning_summary": "Comparing valid USD assets shows CompB ($1B) is lower than CompA ($6B).",
-  "final_answer": "CompB"
+  "step_by_step_analysis": "1. The question asks for the company with the lowest total assets in USD.\n2. Gather the total assets in USD for each company from the individual answers: CrossFirst Bank: $6,601,086,000; Holley Inc.: $1,249,642,000; PowerFleet, Inc.: $217,435,000; Petra Diamonds: $1,078,600,000.\n3. Sleep Country Canada Holdings Inc. is excluded due to 'N/A' value.\n4. Compare the total assets: PowerFleet, Inc. ($217,435,000) < Petra Diamonds ($1,078,600,000) < Holley Inc. ($1,249,642,000)  < CrossFirst Bank ($6,601,086,000).\n5. Therefore, PowerFleet, Inc. has the lowest total assets in USD.",
+  "reasoning_summary": "The individual answers provided the total assets in USD for each company except Sleep Country Canada Holdings Inc. (excluded due to N/A value). Direct comparison shows PowerFleet, Inc. has the lowest total assets.",
+  "relevant_pages": [],
+  "final_answer": "PowerFleet, Inc."
 }
