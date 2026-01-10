@@ -5,7 +5,6 @@ from typing import Any
 
 import tiktoken
 from langchain_text_splitters import (
-    MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
 )
 from loguru import logger
@@ -41,21 +40,13 @@ class CustomRAGChunker:
         - Tokenizer (cl100k_base)
         - Recursive character splitter with token-aware length function
         """
-        self.header_splitter = MarkdownHeaderTextSplitter(
-            headers_to_split_on=[
-                ("#", "h1"),
-                ("##", "h2"),
-                ("###", "h3"),
-            ],
-            strip_headers=False,
-        )
 
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=MAX_TOKENS_PER_CHUNK,
             chunk_overlap=CHUNK_OVERLAP,
             length_function=self.num_tokens,
-            separators=["\n\n", "\n", ". ", " ", ""],
+            separators=["\n# ", "\n## ", "\n### ", "\n\n", "\n", ". ", " ", ""],
         )
 
     def num_tokens(self, text: str) -> int:
@@ -72,6 +63,7 @@ class CustomRAGChunker:
         int
             Number of tokens according to the tokenizer.
         """
+
         return len(self.tokenizer.encode(text))
 
     def clean_text(self, text: str) -> str:
@@ -93,6 +85,7 @@ class CustomRAGChunker:
         str
             Cleaned text suitable for embedding.
         """
+
         text = MARKDOWN_IMAGE_PATTERN.sub("", text)
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text.strip()
@@ -116,6 +109,7 @@ class CustomRAGChunker:
             - "page_number": int
             - "text": str
         """
+
         parts = MARKER_PAGE_SEPARATOR_PATTERN.split(full_text)
 
         pages = []
@@ -150,8 +144,8 @@ class CustomRAGChunker:
             - length_tokens
             - source
             - page_index
-            - header metadata (if available)
         """
+
         full_text = content_path.read_text(encoding="utf-8")
         raw_pages = self.split_by_pages(full_text)
 
@@ -160,20 +154,18 @@ class CustomRAGChunker:
             page_num = page["page_number"]
             page_text = page["text"]
 
-            header_splits = self.header_splitter.split_text(page_text)
-            sub_chunks = self.text_splitter.split_documents(header_splits)
-            for chunk in sub_chunks:
-                text = self.clean_text(chunk.page_content)
-                if not text:
-                    continue
+            clean_page_text = self.clean_text(page_text)
+            if not clean_page_text:
+                continue
 
+            chunks = self.text_splitter.split_text(clean_page_text)
+            for chunk in chunks:
                 record = {
                     "chunk_id": len(final_chunks),
-                    "text": text,
-                    "length_tokens": self.num_tokens(chunk.page_content),
+                    "text": chunk,
+                    "length_tokens": self.num_tokens(chunk),
                     "source": doc_sha1,
                     "page_index": page_num,
-                    **chunk.metadata,
                 }
                 final_chunks.append(record)
 
@@ -191,6 +183,7 @@ def main():
 
     Logs progress and failures without interrupting the full run.
     """
+
     setup_logging()
 
     chunker = CustomRAGChunker()
