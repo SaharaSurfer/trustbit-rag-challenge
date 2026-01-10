@@ -1,9 +1,14 @@
+import json
+import re
+from functools import lru_cache
 from typing import Any
 
 import pandas as pd
 from langchain_chroma import Chroma
+from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from loguru import logger
+from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder
 
 from trustbit_rag_challenge.config import (
@@ -13,6 +18,7 @@ from trustbit_rag_challenge.config import (
     EMBEDDING_MODEL,
     EMBEDDING_NORMALIZE,
     HNSW_CHROMA_SETTINGS,
+    PROCESSED_DATA_DIR,
     RERANKER_MODEL_NAME,
 )
 
@@ -119,7 +125,7 @@ class ChromaRetriever:
             logger.error(f"Error loading company map: {e}")
             raise
 
-    def get_sha1_by_name(self, company_name: str) -> str | None:
+    def _get_sha1_by_name(self, company_name: str) -> str | None:
         """
         Retrieve the SHA1 hash for a given company name.
 
@@ -135,70 +141,214 @@ class ChromaRetriever:
         """
         return self.company_map.get(company_name, None)
 
+    @staticmethod
+    @lru_cache(maxsize=100)
+    def _get_bm25_index(sha1: str) -> tuple[BM25Okapi, list[dict]] | None:
+        """
+        Load, build, and cache a BM25 index for a specific document.
+
+        Parameters
+        ----------
+        sha1 : str
+            The SHA1 hash identifier of the document. Used to locate the
+            corresponding `dataset.json` file in `PROCESSED_DATA_DIR`.
+
+        Returns
+        -------
+        tuple[BM25Okapi, list[dict]] | None
+            A tuple containing:
+            1. The initialized `BM25Okapi` index object.
+            2. The raw list of chunk dictionaries (to reconstruct Documents).
+
+        Returns `None` if the dataset file does not exist, is empty, or
+        cannot be parsed.
+        """
+
+        json_path = PROCESSED_DATA_DIR / sha1 / "dataset.json"
+        if not json_path.exists():
+            logger.warning(f"BM25 Dataset not found: {json_path}")
+            return None
+
+        try:
+            with open(json_path, encoding="utf-8") as f:
+                raw_chunks = json.load(f)
+        except Exception as e:
+            logger.error(f"Error reading BM25 dataset: {e}")
+            return None
+
+        if not raw_chunks:
+            return None
+
+        corpus = [
+            re.findall(r"\w+", chunk.get("text", "").lower())
+            for chunk in raw_chunks
+        ]
+        bm25 = BM25Okapi(corpus)
+
+        return bm25, raw_chunks
+
+    def _fetch_bm25_candidates(
+        self, query: str, sha1: str, fetch_k: int
+    ) -> list[Document]:
+        """
+        Retrieve candidate chunks using BM25 keyword search.
+
+        Parameters
+        ----------
+        query : str
+            The search query string.
+        sha1 : str
+            The SHA1 hash of the target document (to retrieve the cached index).
+        fetch_k : int
+            The maximum number of candidate documents to retrieve.
+
+        Returns
+        -------
+        list[Document]
+            A list of LangChain `Document` objects representing the top matching
+            chunks. Returns an empty list if the index cannot be loaded or
+            if no non-zero matches are found.
+        """
+
+        cached_data = self._get_bm25_index(sha1)
+        if not cached_data:
+            return []
+
+        bm25, raw_chunks = cached_data
+
+        tokenized_query = re.findall(r"\w+", query.lower())
+        scores = bm25.get_scores(tokenized_query)
+
+        top_indices = sorted(
+            range(len(scores)), key=lambda i: scores[i], reverse=True
+        )[:fetch_k]
+
+        bm25_docs = []
+        for idx in top_indices:
+            if scores[idx] <= 0:
+                continue
+
+            metadata = raw_chunks[idx].copy()
+            metadata.pop("chunk_id", None)
+
+            text_content = metadata.pop("text", "")
+            bm25_docs.append(
+                Document(page_content=text_content, metadata=metadata)
+            )
+
+        return bm25_docs
+
+    def _fetch_vector_candidates(
+        self, query: str, sha1: str, fetch_k: int
+    ) -> list[Document]:
+        """
+        Retrieve candidate chunks using semantic similarity.
+
+        Parameters
+        ----------
+        query : str
+            The input search query (semantic question).
+        sha1 : str
+            The SHA1 hash of the target document. Used as a metadata filter
+            (`{"source": sha1}`).
+        fetch_k : int
+            The number of candidate chunks to retrieve from the vector index.
+
+        Returns
+        -------
+        list[Document]
+            A list of LangChain `Document` objects. Returns an empty list if
+            the vector search fails or raises an exception.
+        """
+
+        try:
+            vector_docs_and_scores = (
+                self.vector_store.similarity_search_with_score(
+                    query, k=fetch_k, filter={"source": sha1}
+                )
+            )
+        except Exception as e:
+            logger.error(f"Vector search failed: {e}")
+            return []
+
+        return [doc for doc, _ in vector_docs_and_scores]
+
     def retrieve(
         self, query: str, company_name: str, top_k: int = 5, fetch_k: int = 30
     ) -> list[dict[str, Any]]:
         """
-        Perform a semantic search for the query, filtered by the
-        company's document.
+        Execute the Hybrid Retrieval pipeline (Vector + BM25 + Reranking).
+
+        This method orchestrates the retrieval process by:
+        1. Fetching candidate chunks using Vector/Semantic search.
+        2. Fetching candidate chunks using BM25/Keyword search.
+        3. Merging and deduplicating the candidate pools based on content.
+        4. Re-scoring the unique candidates using a Cross-Encoder (Reranker).
+        5. Returning the top-k results with the highest semantic relevance.
 
         Parameters
         ----------
         query : str
             The user's question or search query.
         company_name : str
-            The name of the company to restrict the search to.
+            The name of the target company. Used to resolve the specific
+            document index (SHA1) via the company mapping.
         top_k : int, optional
-            The number of chunks to retrieve, by default 5.
+            The number of final, reranked chunks to return to the LLM.
+            Default is 5.
         fetch_k : int, optional
-            The number of chunks to fetch, by default 30.
+            The number of candidates to retrieve from *each* source
+            (Vector and BM25) before merging. Default is 30.
 
         Returns
         -------
-        List[Dict[str, Any]]
-            A list of dictionaries representing the retrieved chunks.
-            Each dictionary contains:
+        list[dict[str, Any]]
+            A list of dictionaries representing the most relevant chunks, sorted
+            by reranker score (descending). Each dictionary contains:
             - 'text': str
-            - 'score': float (distance)
+            - 'score': float
             - 'page_index': int
-            - 'source': str (sha1)
+            - 'source': str
         """
-        search_kwargs: dict[str, Any] = {"k": fetch_k}
 
-        target_sha1 = self.get_sha1_by_name(company_name)
-        if target_sha1:
-            search_kwargs["filter"] = {"source": target_sha1}
-            logger.debug(
-                f"Filtering by company: {company_name} ({target_sha1})"
-            )
-        else:
-            logger.warning(
-                f"Company '{company_name}' not found in mapping. "
-                "Searching globally."
-            )
-
-        try:
-            docs_and_scores = self.vector_store.similarity_search_with_score(
-                query, **search_kwargs
-            )
-        except Exception as e:
-            logger.error(f"Search failed: {e}")
+        target_sha1 = self._get_sha1_by_name(company_name)
+        if not target_sha1:
+            logger.warning(f"Company '{company_name}' not found.")
             return []
 
-        logger.debug(f"Reranking {len(docs_and_scores)} documents...")
+        # Fetch candidates
+        vector_docs = self._fetch_vector_candidates(query, target_sha1, fetch_k)
+        bm25_docs = self._fetch_bm25_candidates(query, target_sha1, fetch_k)
 
-        pairs = [[query, doc.page_content] for doc, _ in docs_and_scores]
+        # Merge & deduplicate
+        unique_docs_map = {}
+        for doc in bm25_docs:
+            unique_docs_map[doc.page_content] = doc
+
+        for doc in vector_docs:
+            unique_docs_map[doc.page_content] = doc
+
+        candidates = list(unique_docs_map.values())
+        if not candidates:
+            return []
+
+        logger.debug(f"Pool: {len(candidates)} candidates ")
+
+        # Reranking
+        pairs = [[query, doc.page_content] for doc in candidates]
         rerank_scores = self.reranker.predict(pairs)
 
         reranked_results: list[dict[str, Any]] = []
-        for i, (doc, _) in enumerate(docs_and_scores):
+        for i, doc in enumerate(candidates):
             reranked_results.append(
                 {"doc": doc, "score": float(rerank_scores[i])}
             )
 
+        # Sort & cut
         reranked_results.sort(key=lambda x: x["score"], reverse=True)
         final_selection = reranked_results[:top_k]
 
+        # Format
         clean_results = []
         for item in final_selection:
             doc = item["doc"]
