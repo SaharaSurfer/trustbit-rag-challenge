@@ -54,6 +54,13 @@ CHUNK_OVERLAP = 100
 CHROMA_DB_DIR = DATA_DIR / "chroma_db"
 CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
 
+HNSW_CHROMA_SETTINGS = {
+    "hnsw:space": "cosine",
+    "hnsw:construction_ef": 200,
+    "hnsw:M": 64,
+    "hnsw:search_ef": 100,
+}
+
 EMBEDDING_MODEL = "BAAI/bge-m3"
 EMBEDDING_NORMALIZE = True
 

@@ -1,4 +1,5 @@
 import json
+import shutil
 from pathlib import Path
 
 from langchain_chroma import Chroma
@@ -11,6 +12,7 @@ from trustbit_rag_challenge.config import (
     DEVICE,
     EMBEDDING_MODEL,
     EMBEDDING_NORMALIZE,
+    HNSW_CHROMA_SETTINGS,
     PROCESSED_DATA_DIR,
 )
 from trustbit_rag_challenge.logging_utils import setup_logging
@@ -20,14 +22,8 @@ def load_chunks_from_json(json_path: Path) -> list[Document]:
     """
     Load chunk records from a JSON file and convert them to LangChain Documents.
 
-    Each chunk record is expected to be a dict containing at least the keys:
-    - "chunk_id"
-    - "text"
+    Each chunk record is expected to be a dict containing at least "text".
     Any other keys are treated as metadata fields.
-
-    The returned Document objects will have `page_content` set to
-    `DOCUMENT_PREFIX + chunk["text"]` and `metadata` containing the chunk
-    dict without the "chunk_id" (so chunk_id is not duplicated in metadata).
 
     Parameters
     ----------
@@ -81,10 +77,16 @@ def main() -> None:
         encode_kwargs={"normalize_embeddings": EMBEDDING_NORMALIZE},
     )
 
+    if CHROMA_DB_DIR.exists():
+        logger.warning(f"Removing old DB at {CHROMA_DB_DIR}...")
+        shutil.rmtree(CHROMA_DB_DIR)
+
     vector_store = Chroma(
         collection_name="financial_reports",
+        collection_metadata=HNSW_CHROMA_SETTINGS,
         embedding_function=embeddings,
         persist_directory=str(CHROMA_DB_DIR),
+        create_collection_if_not_exists=True,
     )
 
     doc_dirs = sorted([d for d in PROCESSED_DATA_DIR.iterdir() if d.is_dir()])

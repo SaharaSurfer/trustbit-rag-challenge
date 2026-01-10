@@ -12,6 +12,7 @@ from trustbit_rag_challenge.config import (
     DEVICE,
     EMBEDDING_MODEL,
     EMBEDDING_NORMALIZE,
+    HNSW_CHROMA_SETTINGS,
     RERANKER_MODEL_NAME,
 )
 
@@ -62,8 +63,10 @@ class ChromaRetriever:
         logger.info(f"Connecting to ChromaDB at {self.vector_db_dir}...")
         self.vector_store = Chroma(
             collection_name="financial_reports",
+            collection_metadata=HNSW_CHROMA_SETTINGS,
             embedding_function=self.embeddings,
             persist_directory=str(self.vector_db_dir),
+            create_collection_if_not_exists=False,
         )
 
         logger.info(f"Loading reranker model: {RERANKER_MODEL_NAME}...")
