@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
+import questionary
 import requests
 from rich import box
 from rich.console import Console
-from rich.prompt import Confirm
 from rich.table import Table
 from rich.theme import Theme
 
@@ -22,41 +22,65 @@ custom_theme = Theme(
         "error": "bold red",
         "success": "bold green",
         "highlight": "bold white",
-        "primary": "blue",
-        "prompt.choices": "blue",
+        "primary": "#7fbbb3",
     }
 )
 console = Console(theme=custom_theme)
 
 
-def get_latest_submission_file() -> Path:
+def select_submission_file() -> Path | None:
     """
-    Return the most recently modified submission file for the current user.
+    Interactively select a submission file using a CLI menu.
 
-    The function searches the directory specified by ``DATA_DIR`` for JSON files
-    matching the pattern ``submission_<SURNAME>_*.json`` and returns the file
-    with the latest modification timestamp.
+    Scans ``DATA_DIR`` for files matching ``submission_<SURNAME>_*.json``,
+    sorts them by modification time (newest first), and presents an
+    interactive list navigable with arrow keys.
 
     Returns
     -------
-    pathlib.Path
-        Path to the most recently modified submission file.
+    pathlib.Path or None
+        The path to the selected file, or ``None`` if the user cancels
+        or no files are found.
 
     Raises
     ------
     FileNotFoundError
         If ``DATA_DIR`` does not exist.
-    FileNotFoundError
-        If no matching submission files are found in ``DATA_DIR``.
     """
+
     if not DATA_DIR.exists():
         raise FileNotFoundError(f"Directory {DATA_DIR} does not exist.")
 
     files = list(DATA_DIR.glob(f"submission_{SURNAME}_*.json"))
     if not files:
-        raise FileNotFoundError(f"No submission files found in {DATA_DIR}!")
+        console.print(f"[error]No submission files found in {DATA_DIR}![/]")
+        return None
 
-    return max(files, key=lambda f: f.stat().st_mtime)
+    # Newest first
+    files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+
+    choices = []
+    for f in files:
+        choices.append(questionary.Choice(title=f"{f.name}", value=f))
+
+    choices.append(questionary.Choice(title="cancel"))
+
+    selection = questionary.select(
+        message="Select a file to submit:",
+        qmark="",
+        choices=choices,
+        use_indicator=True,
+        style=questionary.Style(
+            [
+                ("question", "bold"),
+                ("answer", "fg:#7fbbb3 bold"),
+                ("pointer", "fg:#7fbbb3 bold"),
+                ("highlighted", "fg:#7fbbb3 bold"),
+            ]
+        ),
+    ).ask()
+
+    return selection
 
 
 def upload_submission(file_path: Path) -> bool:
@@ -211,9 +235,8 @@ def main() -> None:
     Entry point for the submission workflow.
 
     This function orchestrates the end-to-end user interaction:
-    it locates the most recent submission file, asks the user for
-    confirmation before uploading it, performs the upload if
-    confirmed, and finally fetches and displays the leaderboard.
+    it asks the user to choose the submission file before uploading it,
+    performs the upload, and finally fetches and displays the leaderboard.
 
     All user interaction and output are handled via the console.
     Errors related to missing submission files are caught and
@@ -235,19 +258,11 @@ def main() -> None:
     None
         All expected exceptions are handled internally.
     """
-    try:
-        latest_file = get_latest_submission_file()
-    except FileNotFoundError as e:
-        console.print(f"[error]Error:[/] {e}")
-        return
 
-    console.print(f"Found latest submission: [highlight]{latest_file.name}[/]")
-
-    if Confirm.ask("Do you want to submit this file?", console=console):
-        success = upload_submission(latest_file)
-        if success:
-            console.print("\n")
-        else:
+    selected_file = select_submission_file()
+    if isinstance(selected_file, Path):
+        success = upload_submission(selected_file)
+        if not success:
             console.print("[error]Something went wrong during submission")
 
     fetch_and_display_leaderboard()
