@@ -5,6 +5,7 @@ from typing import Any
 
 import tiktoken
 from langchain_text_splitters import (
+    MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
 )
 from loguru import logger
@@ -41,12 +42,21 @@ class CustomRAGChunker:
         - Recursive character splitter with token-aware length function
         """
 
+        self.header_splitter = MarkdownHeaderTextSplitter(
+            headers_to_split_on=[
+                ("#", "h1"),
+                ("##", "h2"),
+                ("###", "h3"),
+            ],
+            strip_headers=False,
+        )
+
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=MAX_TOKENS_PER_CHUNK,
             chunk_overlap=CHUNK_OVERLAP,
             length_function=self.num_tokens,
-            separators=["\n# ", "\n## ", "\n### ", "\n\n", "\n", ". ", " ", ""],
+            separators=["\n\n", "\n", ". ", " ", ""],
         )
 
     def num_tokens(self, text: str) -> int:
@@ -158,12 +168,13 @@ class CustomRAGChunker:
             if not clean_page_text:
                 continue
 
-            chunks = self.text_splitter.split_text(clean_page_text)
-            for chunk in chunks:
+            header_splits = self.header_splitter.split_text(clean_page_text)
+            sub_chunks = self.text_splitter.split_documents(header_splits)
+            for chunk in sub_chunks:
                 record = {
                     "chunk_id": len(final_chunks),
-                    "text": chunk,
-                    "length_tokens": self.num_tokens(chunk),
+                    "text": chunk.page_content,
+                    "length_tokens": self.num_tokens(chunk.page_content),
                     "source": doc_sha1,
                     "page_index": page_num,
                 }

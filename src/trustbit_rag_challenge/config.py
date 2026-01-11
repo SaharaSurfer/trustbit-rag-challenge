@@ -48,17 +48,17 @@ MARKDOWN_IMAGE_PATTERN = re.compile(r"!\[.*?\]\(.*?\)")
 
 DEVICE = "cuda"
 
-MAX_TOKENS_PER_CHUNK = 600
-CHUNK_OVERLAP = 150
+MAX_TOKENS_PER_CHUNK = 1000
+CHUNK_OVERLAP = 100
 
 CHROMA_DB_DIR = DATA_DIR / "chroma_db"
 CHROMA_DB_DIR.mkdir(parents=True, exist_ok=True)
 
 HNSW_CHROMA_SETTINGS = {
     "hnsw:space": "cosine",
-    "hnsw:construction_ef": 400,
-    "hnsw:M": 64,
-    "hnsw:search_ef": 100,
+    "hnsw:construction_ef": 256,
+    "hnsw:M": 128,
+    "hnsw:search_ef": 256,
 }
 
 EMBEDDING_MODEL = "BAAI/bge-m3"
@@ -72,7 +72,7 @@ OPENAI_MODEL = "gpt-4o-mini"
 
 TEAM_EMAIL = "st119029@student.spbu.ru"
 SURNAME = "Romanov"
-SUBMISSION_NAME = f"{SURNAME}_v4"
+SUBMISSION_NAME = f"{SURNAME}_v6"
 
 SERVER_BASE_URL = "http://5.35.3.130:800"
 SUBMISSION_URL = f"{SERVER_BASE_URL}/submit"

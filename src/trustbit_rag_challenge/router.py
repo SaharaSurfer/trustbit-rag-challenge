@@ -191,11 +191,11 @@ class RAGRouter:
             validated reference dictionaries.
         """
 
-        top_k = 10
+        top_k = 5
         fetch_k = 50
 
         # Heuristic to remove trailing noise found in questions
-        question = query.split("?")[0]
+        question = query.split("?")[0].replace(company, "company")
         chunks = self.retriever.retrieve(
             question, company_name=company, top_k=top_k, fetch_k=fetch_k
         )
