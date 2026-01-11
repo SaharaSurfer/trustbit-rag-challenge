@@ -2,10 +2,11 @@ Example 1:
 Question: "What was the total assets of 'Waste Connections Inc.' in the fiscal year 2022?"
 Answer:
 {
-  "step_by_step_analysis": "1. **Metric Definition:** The question asks for 'total assets' for 'Waste Connections Inc.' in fiscal year 2022. 'Total assets' represents the sum of all resources owned.\n2. **Context Examination:** The context includes 'Consolidated Balance Sheets' (page 78).\n3. **Metric Matching:** On page 78, under 'December 31, 2022', a line item labeled 'Total assets' exists. This directly matches.\n4. **Value Extraction:** The value is '$18,500,342'. The context indicates this is in thousands. Therefore, 18,500,342,000.\n5. **Confirmation:** Direct match found.",
-  "reasoning_summary": "Found 'Total assets' on page 78. Value was in thousands, scaled by 1000.",
+  "step_by_step_analysis": "1. **Metric Definition:** The question asks for 'total assets' for 'Waste Connections Inc.' in fiscal year 2022. 'Total assets' represents the sum of all resources owned.\n2. **Context Examination:** The context includes 'Consolidated Balance Sheets' (page 78).\n3. **Metric Matching:** On page 78, under 'December 31, 2022', a line item labeled 'Total assets' exists. This directly matches.\n4. **Value Extraction:** The value is '$18,500,342'. The context indicates this is in thousands.\n5. **Formatting:** I will extract the raw number 18500342 and set the scale to 'thousands'.",
+  "reasoning_summary": "Found 'Total assets' on page 78. Value is 18,500,342. Header explicitly specifies units 'in thousands'.",
   "relevant_pages": [78],
-  "final_answer": 18500342000
+  "final_answer": 18500342,
+  "scale": "thousands"
 }
 
 Example 2:
@@ -15,7 +16,8 @@ Answer:
   "step_by_step_analysis": "1. Question asks for 'Research and development equipment, at cost'.\n2. Context (page 35) shows 'Property and equipment, net' at $12,500. This is net, not cost.\n3. Context (page 37) shows 'Accumulated Depreciation'.\n4. Neither matches 'at cost' specific to R&D.\n5. Answer is 'N/A'.",
   "reasoning_summary": "Context lacks specific line item for R&D equipment at cost.",
   "relevant_pages": [35, 37],
-  "final_answer": "N/A"
+  "final_answer": "N/A",
+  "scale": "ones"
 }
 
 Example 3:
@@ -25,5 +27,6 @@ Answer:
   "step_by_step_analysis": "1. The question asks for 'Operating margin (%)'.\n2. The context (Page 21) lists 'Revenue from Sales' (12,168) and 'Operating Loss' (3,062).\n3. However, the text does not explicitly state a value for 'Operating margin' or provide a percentage figure.\n4. Obtaining the answer would require dividing Operating Loss by Revenue ((3,062 / 12,168) * 100).\n5. The instructions strictly forbid calculation or derivation. Since the specific metric is not explicitly written in the text, the answer is 'N/A'.",
   "reasoning_summary": "Context provides the raw components (Revenue, Operating Loss) but does not explicitly report the 'Operating margin' percentage. Calculations are prohibited. Answer is 'N/A'.",
   "relevant_pages": [21],
-  "final_answer": "N/A"
+  "final_answer": "N/A",
+  "scale": "ones"
 }

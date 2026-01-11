@@ -8,7 +8,7 @@ from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from trustbit_rag_challenge.config import OPENAI_MODEL
-from trustbit_rag_challenge.enums import QuestionKind
+from trustbit_rag_challenge.enums import QuestionKind, UnitScale
 from trustbit_rag_challenge.llm.prompts import (
     format_rephrasing_prompt,
     format_user_prompt,
@@ -227,11 +227,21 @@ class LLMClient:
             logger.error(f"API Error (answering question): {e}")
             return self._get_fallback_response(kind, str(e))
 
+        final_val = llm_response.final_answer
+        if kind == QuestionKind.NUMBER and final_val != "N/A":
+            multipliers = {
+                UnitScale.ONES: 1,
+                UnitScale.THOUSANDS: 1_000,
+                UnitScale.MILLIONS: 1_000_000,
+                UnitScale.BILLIONS: 1_000_000_000,
+            }
+            final_val *= multipliers.get(llm_response.scale, 1)
+
         # Comparative question schema doesn't have `relevant_pages`
         relevant_pages = getattr(llm_response, "relevant_pages", [])
 
         return ClientResponse(
-            value=llm_response.final_answer,
+            value=final_val,
             relevant_pages=relevant_pages,
             step_by_step_analysis=llm_response.step_by_step_analysis,
             reasoning_summary=llm_response.reasoning_summary,

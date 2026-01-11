@@ -28,3 +28,10 @@ class QuestionKind(str, Enum):
     BOOLEAN = "boolean"
     NAMES = "names"
     COMPARATIVE = "comparative"
+
+
+class UnitScale(str, Enum):
+    ONES = "ones"
+    THOUSANDS = "thousands"
+    MILLIONS = "millions"
+    BILLIONS = "billions"

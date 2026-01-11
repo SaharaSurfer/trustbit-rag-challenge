@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from trustbit_rag_challenge.enums import QuestionKind
+from trustbit_rag_challenge.enums import QuestionKind, UnitScale
 
 # ----------------------------------- Mixins -----------------------------------
 
@@ -52,6 +52,8 @@ class NumberResponse(ChainOfThoughtMixin, ReferencesMixin):
         ...,
         description=(
             "The exact numeric value based on the text is required. "
+            "Extract the value EXACTLY as it appears in the text. "
+            "DO NOT multiply by thousands/millions/billions.\n"
             "Mandatory formatting rules:\n\n"
             "- Example for commas:\n"
             "Value from context: 197,621,000\n"
@@ -62,15 +64,6 @@ class NumberResponse(ChainOfThoughtMixin, ReferencesMixin):
             "- Example for negative values:\n"
             "Value from context: (2,124,837) CHF\n"
             "Final answer: -2124837\n\n"
-            "- Example for numbers in thousands:\n"
-            "Value from context: 49,705 (in thousands $)\n"
-            "Final answer: 49705000\n\n"
-            "- Example for numbers in millions:\n"
-            "Value from context: 20.7 (in millions $)\n"
-            "Final answer: 20700000\n\n"
-            "- Example for numbers in billions:\n"
-            "Value from context: 6.2 (in billions $)\n"
-            "Final answer: 6200000000\n\n"
             "- Example for currency mismatch:\n"
             "Value from context: 780000 USD, but question mentions EUR\n"
             "Final answer: 'N/A'\n\n"
@@ -83,7 +76,20 @@ class NumberResponse(ChainOfThoughtMixin, ReferencesMixin):
             "Final answer: 'N/A'\n\n"
             "- Return 'N/A' if metric is not directly stated EVEN IF it could "
             "be calculated from other metrics in the context\n\n"
-            "- Return 'N/A' if EXACT metric is not available in the context"
+        ),
+    )
+    scale: UnitScale = Field(
+        ...,
+        description=(
+            "The scale associated with the value in `final_answer` field.\n"
+            "- 'in thousands' -> 'thousands'\n"
+            "- 'in millions', 'mln', '$m' -> 'millions'\n"
+            "- 'in billions', '$b' -> 'billions'\n"
+            "- '%', 'ratio', or plain numbers -> 'ones'\n"
+            "If `final_answer` is 'N/A', select 'ones'.\n"
+            "DO NOT assume a scale based on the magnitude of the number. "
+            "Select 'ones' if the text does not EXPLICITLY state "
+            "that the value is expressed in thousands, millions, or billions."
         ),
     )
 
@@ -120,6 +126,8 @@ class NamesResponse(ChainOfThoughtMixin, ReferencesMixin):
             "A list of names extracted exactly as they appear. "
             "If asking for positions, return ONLY titles (e.g. 'CEO'). "
             "If asking for names, return full names. "
+            "Each item of the list MUST be a single title "
+            "(e.g. ['President & CEO'] -> ['President', 'CEO']). "
             "No duplicates."
         ),
     )

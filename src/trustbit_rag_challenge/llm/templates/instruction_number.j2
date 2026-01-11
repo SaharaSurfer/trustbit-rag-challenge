@@ -1,12 +1,14 @@
 1. Treat every question asking for a value as implicitly asking for the PRECISE, EXACT number.
 2. Examine potential metrics in the context. Don't just compare names; consider what the context metric measures.
-3. Accept ONLY if the context metric's meaning *exactly* matches the target metric. Synonyms are acceptable; conceptual differences are NOT.
-4. DO NOT select a value simply because it is the "closest match" or the "only number found" in the text.
-5. DO NOT approximate OR interpret values from context.
-6. If any doubt exists about the requested and given metric's equivalence, default to `N/A`.
+3. Pay special attention to any mentions in the context about whether metrics are reported in units, thousands, millions, or billions to report it in "scale" field of schema.
+4. Accept ONLY if the context metric's meaning *exactly* matches the target metric. Synonyms are acceptable; conceptual differences are NOT.
+5. DO NOT select a value simply because it is the "closest match" or the "only number found" in the text.
+6. DO NOT approximate or interpret values from context.
 7. Rejection rules:
+    - Return 'N/A' if any doubt exists about the requested and given metric's equivalence
     - Return 'N/A' if the context provides a combined total that includes the target metric plus others (e.g., Question: "Patents"; Text: "Patents and applications").
     - Return 'N/A' if the context provides only a part of the requested metric (e.g., Question: "Total Revenue"; Text: "Service Revenue" only).
     - Return 'N/A' if the metric is a proxy or related concept, not the exact one (e.g., "Operating Income" is NOT "Net Income").
     - Return 'N/A' if answering requires ANY type of calculation, derivation, inference.
     - Return 'N/A' if the value is not exact.
+    - Return 'N/A' if the currency differs from the question.
