@@ -1,6 +1,4 @@
-import json
 import re
-from functools import lru_cache
 from typing import Any
 
 import pandas as pd
@@ -18,7 +16,6 @@ from trustbit_rag_challenge.config import (
     EMBEDDING_MODEL,
     EMBEDDING_NORMALIZE,
     HNSW_CHROMA_SETTINGS,
-    PROCESSED_DATA_DIR,
     RERANKER_MODEL_NAME,
 )
 
@@ -83,6 +80,10 @@ class ChromaRetriever:
         self.company_map = self._load_company_map()
         logger.info(f"Loaded mapping for {len(self.company_map)} companies.")
 
+        self._bm25_cache: dict[
+            str, tuple[BM25Okapi, list[str], list[dict]]
+        ] = {}
+
     def _load_company_map(self) -> dict[str, str]:
         """
         Load and validate the company mapping CSV.
@@ -141,9 +142,9 @@ class ChromaRetriever:
         """
         return self.company_map.get(company_name, None)
 
-    @staticmethod
-    @lru_cache(maxsize=100)
-    def _get_bm25_index(sha1: str) -> tuple[BM25Okapi, list[dict]] | None:
+    def _get_bm25_index(
+        self, sha1: str
+    ) -> tuple[BM25Okapi, list[str], list[dict]] | None:
         """
         Load, build, and cache a BM25 index for a specific document.
 
@@ -155,37 +156,36 @@ class ChromaRetriever:
 
         Returns
         -------
-        tuple[BM25Okapi, list[dict]] | None
+        tuple[BM25Okapi, list[str]] | None
             A tuple containing:
             1. The initialized `BM25Okapi` index object.
-            2. The raw list of chunk dictionaries (to reconstruct Documents).
+            2. The raw list of chunk documents.
 
         Returns `None` if the dataset file does not exist, is empty, or
         cannot be parsed.
         """
 
-        json_path = PROCESSED_DATA_DIR / sha1 / "dataset.json"
-        if not json_path.exists():
-            logger.warning(f"BM25 Dataset not found: {json_path}")
-            return None
+        if sha1 in self._bm25_cache:
+            return self._bm25_cache[sha1]
 
         try:
-            with open(json_path, encoding="utf-8") as f:
-                raw_chunks = json.load(f)
+            results = self.vector_store.get(where={"source": sha1})
         except Exception as e:
-            logger.error(f"Error reading BM25 dataset: {e}")
+            logger.error(f"Failed to fetch docs from Chroma for BM25: {e}")
             return None
 
-        if not raw_chunks:
+        raw_chunks = results.get("documents")
+        metadatas = results.get("metadatas")
+        if not raw_chunks or not metadatas:
+            logger.warning(f"No documents found in DB for source: {sha1}")
             return None
 
-        corpus = [
-            re.findall(r"\w+", chunk.get("text", "").lower())
-            for chunk in raw_chunks
-        ]
+        corpus = [re.findall(r"\w+", text.lower()) for text in raw_chunks]
         bm25 = BM25Okapi(corpus)
 
-        return bm25, raw_chunks
+        self._bm25_cache[sha1] = (bm25, raw_chunks, metadatas)
+
+        return bm25, raw_chunks, metadatas
 
     def _fetch_bm25_candidates(
         self, query: str, sha1: str, fetch_k: int
@@ -214,7 +214,7 @@ class ChromaRetriever:
         if not cached_data:
             return []
 
-        bm25, raw_chunks = cached_data
+        bm25, raw_chunks, metadatas = cached_data
 
         tokenized_query = re.findall(r"\w+", query.lower())
         scores = bm25.get_scores(tokenized_query)
@@ -228,12 +228,9 @@ class ChromaRetriever:
             if scores[idx] <= 0:
                 continue
 
-            metadata = raw_chunks[idx].copy()
-            metadata.pop("chunk_id", None)
-
-            text_content = metadata.pop("text", "")
+            meta = metadatas[idx].copy()
             bm25_docs.append(
-                Document(page_content=text_content, metadata=metadata)
+                Document(page_content=raw_chunks[idx], metadata=meta)
             )
 
         return bm25_docs

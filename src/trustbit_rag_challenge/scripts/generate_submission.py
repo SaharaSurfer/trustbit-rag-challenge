@@ -53,12 +53,17 @@ def process_single_question(q_data: dict, orchestrator: RAGRouter) -> Answer:
         result = orchestrator.answer_question(text, kind)
 
         refs = []
+        seen_pages = set()
         for r in result.references:
-            refs.append(
-                SourceReference(
-                    pdf_sha1=r["pdf_sha1"], page_index=r["page_index"]
+            page_id = (r["pdf_sha1"], r["page_index"])
+
+            if page_id not in seen_pages:
+                seen_pages.add(page_id)
+                refs.append(
+                    SourceReference(
+                        pdf_sha1=r["pdf_sha1"], page_index=r["page_index"]
+                    )
                 )
-            )
 
         return Answer(
             question_text=text,
