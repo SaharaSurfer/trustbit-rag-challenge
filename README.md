@@ -30,12 +30,11 @@ The pipeline consists of the following stages:
 
 Extracting structured data from complex financial reports presents inherent challenges. The current system is subject to the following technical constraints and model limitations:
 
-1.  **Numerical Scaling Errors**: The LLM occasionally fails to correctly apply unit scaling context (e.g., treating a value listed as €38,366 millions as 38,366.0 instead of 38,366,000,000).
-2.  **False Negatives**: The system prompts are engineered to return "N/A" or "False" if the information is not explicitly stated. Consequently, the system may miss valid answers that require minor inference or are located in complex table structures that were split during chunking.
-3.  **Overall Instruction Adherence**: The model occasionally overlooks specific system instructions (e.g., negative constraints or formatting rules). This can lead to answers that deviate from the strict schema despite prompt engineering efforts.
-4.  **Retrieval Gaps**: Despite the hybrid approach, specific line items in dense financial tables may sometimes be ranked lower than general textual descriptions, leading to missing context for the LLM.
-5. **Table Fragmentation:** The current chunking strategy may sever the connection between column headers and row data. Consequently, the LLM might fail to interpret isolated table rows correctly or the retriever might rank them poorly due to missing semantic context.
-6.  **Text-Only Analysis**: The pipeline extracts text but currently ignores infographics, charts, and diagrams. Information presented exclusively in visual formats is not retrievable.
+1.  **False Negatives**: The system prompts are engineered to return "N/A" or "False" if the information is not explicitly stated. Consequently, the system may miss valid answers that require minor inference.
+2.  **Overall Instruction Adherence**: The model occasionally overlooks specific system instructions (e.g., negative constraints or formatting rules). This can lead to answers that deviate from the strict schema despite prompt engineering efforts.
+3.  **Retrieval Gaps**: Despite the hybrid approach, some relevant information is missed during the search. Perhaps this problem can be solved by using Flat Search instead of HNSW (the number of vectors is relatively small).
+4. **Table Fragmentation:** The current chunking strategy may sever the connection between column headers and row data. Consequently, the LLM might fail to interpret isolated table rows correctly or the retriever might rank them poorly due to missing semantic context.
+5.  **Text-Only Analysis**: The pipeline extracts text but currently ignores information presented exclusively in visual formats.
 
 ## Project Structure
 
