@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import tiktoken
+from langchain_core.documents import Document
 from langchain_text_splitters import (
     MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
@@ -134,6 +135,53 @@ class CustomRAGChunker:
 
         return pages
 
+    def merge_header_splits(self, splits: list[Document]) -> list[Document]:
+        """
+        Merge small adjacent header splits to improve context continuity.
+
+        If a split is small, it is merged with the previous split. This allows
+        the subsequent RecursiveCharacterTextSplitter to handle the boundaries
+        with proper overlap, rather than having hard boundaries enforced by
+        Markdown headers.
+
+        Parameters
+        ----------
+        splits : list[Document]
+            List of documents produced by MarkdownHeaderTextSplitter.
+
+        Returns
+        -------
+        list[Document]
+            A potentially shorter list of merged documents.
+        """
+
+        if not splits:
+            return []
+
+        merged_docs = []
+
+        current_text_parts = []
+        current_tokens = 0
+
+        for doc in splits:
+            token_count = self.num_tokens(doc.page_content)
+
+            current_text_parts.append(doc.page_content)
+            current_tokens += token_count
+
+            if current_tokens > MAX_TOKENS_PER_CHUNK:
+                full_text = "\n\n".join(current_text_parts)
+                merged_docs.append(Document(page_content=full_text))
+
+                current_text_parts = []
+                current_tokens = 0
+
+        if current_text_parts:
+            full_text = "\n\n".join(current_text_parts)
+            merged_docs.append(Document(page_content=full_text))
+
+        return merged_docs
+
     def process_document(self, content_path: Path, doc_sha1: str) -> list[dict]:
         """
         Process a single Markdown document into RAG-ready chunks.
@@ -169,7 +217,8 @@ class CustomRAGChunker:
                 continue
 
             header_splits = self.header_splitter.split_text(clean_page_text)
-            sub_chunks = self.text_splitter.split_documents(header_splits)
+            merged_splits = self.merge_header_splits(header_splits)
+            sub_chunks = self.text_splitter.split_documents(merged_splits)
             for chunk in sub_chunks:
                 record = {
                     "chunk_id": len(final_chunks),
